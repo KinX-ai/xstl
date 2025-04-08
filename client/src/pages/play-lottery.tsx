@@ -19,6 +19,7 @@ export default function PlayLottery() {
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
   const [betAmount, setBetAmount] = useState<number>(10000);
   const [betType, setBetType] = useState<string>("Đề đặc biệt");
+  const [betMode, setBetMode] = useState<string>("de");
   const [activeTab, setActiveTab] = useState<string>("play");
 
   // Lấy kết quả xổ số mới nhất
@@ -142,6 +143,7 @@ export default function PlayLottery() {
                     <NumberGrid 
                       selectedNumbers={selectedNumbers}
                       onNumberSelect={handleNumberSelection}
+                      mode={betMode === "bacanh" ? "bacanh" : "regular"}
                     />
                   </CardContent>
                 </Card>
@@ -161,6 +163,12 @@ export default function PlayLottery() {
                   onSelectNumber={handleNumberSelection}
                   onClearAll={handleClearSelection}
                   onRandomSelect={handleRandomSelection}
+                  betMode={betMode}
+                  setBetMode={(mode) => {
+                    setBetMode(mode);
+                    // Clear selection when switching bet modes
+                    setSelectedNumbers([]);
+                  }}
                 />
               </div>
             </div>

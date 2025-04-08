@@ -11,6 +11,12 @@ export const PRIZE_RATES = {
   xienbon: 180   // Xiên 4
 };
 
+// Lấy tỷ lệ thắng từ server
+export async function fetchPrizeRates(): Promise<any> {
+  const response = await apiRequest("GET", "/api/admin/prize-rates");
+  return response.json();
+}
+
 export const DEFAULT_LO_AMOUNT = 24000; // 1 điểm lô = 24.000 VNĐ
 
 export interface LotteryResult {
@@ -82,45 +88,87 @@ export async function getUserTransactions(): Promise<any[]> {
 
 // Helper function to check if a number is a winner
 export function checkWinner(number: string, results: LotteryResult): boolean {
-  // Check if the last two digits match any of the results
-  const twoDigits = number.slice(-2);
-  
+  // For numbers of different lengths we check different things
+  const length = number.length;
   const resultsData = results.results;
   
-  // Check special prize (last 2 digits)
-  if (resultsData.special.endsWith(twoDigits)) return true;
-  
-  // Check first prize (last 2 digits)
-  if (resultsData.first.endsWith(twoDigits)) return true;
-  
-  // Check second prize (last 2 digits)
-  for (const result of resultsData.second) {
-    if (result.endsWith(twoDigits)) return true;
-  }
-  
-  // Check third prize (last 2 digits)
-  for (const result of resultsData.third) {
-    if (result.endsWith(twoDigits)) return true;
-  }
-  
-  // Check fourth prize
-  for (const result of resultsData.fourth) {
-    if (result === twoDigits) return true;
-  }
-  
-  // Check fifth prize
-  for (const result of resultsData.fifth) {
-    if (result.endsWith(twoDigits)) return true;
-  }
-  
-  // Check sixth prize
-  for (const result of resultsData.sixth) {
-    if (result === twoDigits) return true;
-  }
-  
-  // Check seventh prize
-  for (const result of resultsData.seventh) {
-    if (result === twoDigits) return true;
+  if (length === 2) {
+    // Check if the 2 digits match any of the results (lô 2 số or đề)
+    const twoDigits = number;
+    
+    // Check special prize (last 2 digits)
+    if (resultsData.special.endsWith(twoDigits)) return true;
+    
+    // Check first prize (last 2 digits)
+    if (resultsData.first.endsWith(twoDigits)) return true;
+    
+    // Check second prize (last 2 digits)
+    for (const result of resultsData.second) {
+      if (result.endsWith(twoDigits)) return true;
+    }
+    
+    // Check third prize (last 2 digits)
+    for (const result of resultsData.third) {
+      if (result.endsWith(twoDigits)) return true;
+    }
+    
+    // Check fourth prize
+    for (const result of resultsData.fourth) {
+      if (result === twoDigits) return true;
+    }
+    
+    // Check fifth prize
+    for (const result of resultsData.fifth) {
+      if (result.endsWith(twoDigits)) return true;
+    }
+    
+    // Check sixth prize
+    for (const result of resultsData.sixth) {
+      if (result === twoDigits) return true;
+    }
+    
+    // Check seventh prize
+    for (const result of resultsData.seventh) {
+      if (result === twoDigits) return true;
+    }
+  } else if (length === 3) {
+    // Check if the 3 digits match (3 càng or lô 3 số)
+    const threeDigits = number;
+    
+    // Check special prize (last 3 digits for 3 càng)
+    if (resultsData.special.length >= 3 && resultsData.special.endsWith(threeDigits)) return true;
+    
+    // For lô 3 số, check all prizes for 3 consecutive digits
+    // Special prize
+    if (resultsData.special.includes(threeDigits)) return true;
+    
+    // First prize
+    if (resultsData.first.includes(threeDigits)) return true;
+    
+    // Second prizes
+    for (const result of resultsData.second) {
+      if (result.includes(threeDigits)) return true;
+    }
+    
+    // Third prizes
+    for (const result of resultsData.third) {
+      if (result.includes(threeDigits)) return true;
+    }
+    
+    // Fourth prizes
+    for (const result of resultsData.fourth) {
+      if (result.includes(threeDigits)) return true;
+    }
+    
+    // Fifth prizes
+    for (const result of resultsData.fifth) {
+      if (result.includes(threeDigits)) return true;
+    }
+    
+    // Sixth prizes
+    for (const result of resultsData.sixth) {
+      if (result.includes(threeDigits)) return true;
+    }
   }
   
   return false;

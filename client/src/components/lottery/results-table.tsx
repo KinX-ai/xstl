@@ -404,8 +404,8 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="border p-1 font-bold bg-orange-50 w-8 text-center">{i}</td>
-                  <td className="border p-1">
+                  <td className="border p-1 font-bold bg-orange-50 w-6 text-center text-lg">{i}</td>
+                  <td className="border p-1 text-lg">
                     {getNumbersForHead(i).join(", ")}
                   </td>
                 </tr>
@@ -425,8 +425,8 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="border p-1 font-bold bg-purple-50 w-8 text-center">{i}</td>
-                  <td className="border p-1">
+                  <td className="border p-1 font-bold bg-purple-50 w-6 text-center text-lg">{i}</td>
+                  <td className="border p-1 text-lg">
                     {getNumbersForTail(i).join(", ")}
                   </td>
                 </tr>

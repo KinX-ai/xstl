@@ -13,7 +13,8 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { PRIZE_RATES, DEFAULT_LO_AMOUNT } from "@/lib/lottery-api";
+import { PRIZE_RATES, DEFAULT_LO_AMOUNT, fetchPrizeRates } from "@/lib/lottery-api";
+import { useQuery } from "@tanstack/react-query";
 
 interface BettingFormProps {
   betAmount: number;
@@ -27,6 +28,8 @@ interface BettingFormProps {
   onSelectNumber?: (number: string) => void;
   onClearAll?: () => void;
   onRandomSelect?: () => void;
+  betMode?: string;
+  setBetMode?: (mode: string) => void;
 }
 
 // Đã import PRIZE_RATES và DEFAULT_LO_AMOUNT từ lottery-api.ts
@@ -42,56 +45,85 @@ export default function BettingForm({
   selectedNumbers,
   onSelectNumber,
   onClearAll,
-  onRandomSelect
+  onRandomSelect,
+  betMode = "de",
+  setBetMode
 }: BettingFormProps) {
-  const [betMode, setBetMode] = useState<"de" | "lo" | "xien">("de");
+  const [internalBetMode, setInternalBetMode] = useState<"de" | "lo" | "xien" | "bacanh">(betMode as "de" | "lo" | "xien" | "bacanh");
+  
+  // Use internal or external state based on prop presence
+  const actualBetMode = betMode || internalBetMode;
+  const actualSetBetMode = (mode: string) => {
+    if (setBetMode) {
+      setBetMode(mode);
+    } else {
+      setInternalBetMode(mode as "de" | "lo" | "xien" | "bacanh");
+    }
+  };
   const [xienCount, setXienCount] = useState<number>(2);
   const [tempNumbers, setTempNumbers] = useState<string[]>([]);
   const [potentialWinnings, setPotentialWinnings] = useState<number>(0);
+  
+  // Lấy tỷ lệ thắng từ server
+  const { data: serverPrizeRates } = useQuery({
+    queryKey: ["/api/admin/prize-rates"],
+    queryFn: fetchPrizeRates,
+  });
+  
+  // Sử dụng server rates nếu có, ngược lại dùng default
+  const prizeRates = serverPrizeRates || PRIZE_RATES;
   
   const predefinedAmounts = [10000, 20000, 50000, 100000, 200000];
 
   useEffect(() => {
     // Tính tiền thắng dự kiến dựa trên loại cược và số tiền đặt
     let rate = 0;
-    if (betMode === "de") {
-      rate = betType === "Đề đặc biệt" ? PRIZE_RATES.special : PRIZE_RATES.first;
-    } else if (betMode === "lo") {
-      rate = betType === "Lô 3 số" ? PRIZE_RATES.lo3so : PRIZE_RATES.lo2so;
-    } else if (betMode === "xien") {
+    if (actualBetMode === "de") {
+      rate = betType === "Đề đặc biệt" ? prizeRates.special : prizeRates.first;
+    } else if (actualBetMode === "lo") {
+      rate = betType === "Lô 3 số" ? prizeRates.lo3so : prizeRates.lo2so;
+    } else if (actualBetMode === "xien") {
       switch (xienCount) {
-        case 2: rate = PRIZE_RATES.xienhai; break;
-        case 3: rate = PRIZE_RATES.xienba; break;
-        case 4: rate = PRIZE_RATES.xienbon; break;
+        case 2: rate = prizeRates.xienhai; break;
+        case 3: rate = prizeRates.xienba; break;
+        case 4: rate = prizeRates.xienbon; break;
       }
+    } else if (actualBetMode === "bacanh") {
+      rate = prizeRates.bacanh;
     }
     
     // Lô được tính theo số điểm (1 điểm = 24.000đ)
-    if (betMode === "lo") {
+    if (actualBetMode === "lo") {
       const numPoints = betAmount / DEFAULT_LO_AMOUNT;
       // Đối với lô, mỗi số được tính riêng
       const numSelectedNumbers = selectedNumbers.length || 1;
       setPotentialWinnings(numPoints * rate * DEFAULT_LO_AMOUNT); // Tiền thắng của 1 số
-    } else if (betMode === "de") {
+    } else if (actualBetMode === "de") {
       // Đối với đề, tổng tiền cược sẽ là số lượng số * số tiền đặt
       const numSelectedNumbers = selectedNumbers.length || 1;
-      setPotentialWinnings((betAmount / numSelectedNumbers) * rate / 1000); // Tiền thắng của 1 số
+      setPotentialWinnings((betAmount / numSelectedNumbers) * rate); // Tiền thắng của 1 số
+    } else if (actualBetMode === "bacanh") {
+      // Ba càng tính giống như đề
+      const numSelectedNumbers = selectedNumbers.length || 1;
+      setPotentialWinnings((betAmount / numSelectedNumbers) * rate);
     } else {
       // Xiên
-      setPotentialWinnings(betAmount * rate / 1000);
+      setPotentialWinnings(betAmount * rate);
     }
-  }, [betAmount, betMode, betType, xienCount, selectedNumbers.length]);
+  }, [betAmount, actualBetMode, betType, xienCount, selectedNumbers.length, prizeRates]);
 
   // Cập nhật loại cược khi người dùng chọn chế độ
   useEffect(() => {
-    if (betMode === "de") {
+    if (actualBetMode === "de") {
       setBetType("Đề đặc biệt");
-    } else if (betMode === "lo") {
+    } else if (actualBetMode === "lo") {
       setBetType("Lô 2 số");
-    } else if (betMode === "xien") {
+    } else if (actualBetMode === "xien") {
       setBetType(`Xiên ${xienCount}`);
+    } else if (actualBetMode === "bacanh") {
+      setBetType("Ba càng");
     }
-  }, [betMode, xienCount, setBetType]);
+  }, [actualBetMode, xienCount, setBetType]);
 
   const handleAmountSelection = (amount: number) => {
     setBetAmount(amount);
@@ -121,7 +153,7 @@ export default function BettingForm({
 
   // Tạo các mục lựa chọn cho thể loại đánh lô đề
   const renderBetTypeOptions = () => {
-    if (betMode === "de") {
+    if (actualBetMode === "de") {
       return (
         <div className="space-y-3">
           <Label className="text-base">Chọn loại đề:</Label>
@@ -130,9 +162,9 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại đề" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Đề đặc biệt">Đề đặc biệt (x{PRIZE_RATES.special})</SelectItem>
-              <SelectItem value="Đề đầu">Đề đầu (x{PRIZE_RATES.first})</SelectItem>
-              <SelectItem value="Đề đuôi">Đề đuôi (x{PRIZE_RATES.first})</SelectItem>
+              <SelectItem value="Đề đặc biệt">Đề đặc biệt (x{prizeRates.special})</SelectItem>
+              <SelectItem value="Đề đầu">Đề đầu (x{prizeRates.first})</SelectItem>
+              <SelectItem value="Đề đuôi">Đề đuôi (x{prizeRates.first})</SelectItem>
             </SelectContent>
           </Select>
           
@@ -143,7 +175,7 @@ export default function BettingForm({
           </div>
         </div>
       );
-    } else if (betMode === "lo") {
+    } else if (actualBetMode === "lo") {
       return (
         <div className="space-y-3">
           <Label className="text-base">Chọn loại lô:</Label>
@@ -152,8 +184,8 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại lô" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Lô 2 số">Lô 2 số (x{PRIZE_RATES.lo2so})</SelectItem>
-              <SelectItem value="Lô 3 số">Lô 3 số (x{PRIZE_RATES.lo3so})</SelectItem>
+              <SelectItem value="Lô 2 số">Lô 2 số (x{prizeRates.lo2so})</SelectItem>
+              <SelectItem value="Lô 3 số">Lô 3 số (x{prizeRates.lo3so})</SelectItem>
             </SelectContent>
           </Select>
           
@@ -163,7 +195,7 @@ export default function BettingForm({
           </div>
         </div>
       );
-    } else if (betMode === "xien") {
+    } else if (actualBetMode === "xien") {
       return (
         <div className="space-y-3">
           <Label className="text-base">Chọn loại xiên:</Label>
@@ -175,7 +207,7 @@ export default function BettingForm({
                 variant={xienCount === count ? "default" : "outline"}
                 onClick={() => handleXienCountChange(count)}
               >
-                Xiên {count} (x{count === 2 ? PRIZE_RATES.xienhai : count === 3 ? PRIZE_RATES.xienba : PRIZE_RATES.xienbon})
+                Xiên {count} (x{count === 2 ? prizeRates.xienhai : count === 3 ? prizeRates.xienba : prizeRates.xienbon})
               </Button>
             ))}
           </div>
@@ -184,6 +216,17 @@ export default function BettingForm({
             <p>• <strong>Xiên 2:</strong> Cần 2 số đều xuất hiện ở bất kỳ giải nào</p>
             <p>• <strong>Xiên 3:</strong> Cần 3 số đều xuất hiện ở bất kỳ giải nào</p>
             <p>• <strong>Xiên 4:</strong> Cần 4 số đều xuất hiện ở bất kỳ giải nào</p>
+          </div>
+        </div>
+      );
+    } else if (actualBetMode === "bacanh") {
+      return (
+        <div className="space-y-3">
+          <Label className="text-base">Ba càng (3 số cuối giải ĐB):</Label>
+          
+          <div className="mt-2 text-sm text-gray-600">
+            <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
+            <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
           </div>
         </div>
       );
@@ -198,11 +241,12 @@ export default function BettingForm({
         <CardTitle>Đặt Cược</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs value={betMode} onValueChange={(value) => setBetMode(value as "de" | "lo" | "xien")}>
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+        <Tabs value={actualBetMode} onValueChange={(value) => actualSetBetMode(value as "de" | "lo" | "xien" | "bacanh")}>
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="de">Đánh Đề</TabsTrigger>
             <TabsTrigger value="lo">Đánh Lô</TabsTrigger>
             <TabsTrigger value="xien">Đánh Xiên</TabsTrigger>
+            <TabsTrigger value="bacanh">Ba Càng</TabsTrigger>
           </TabsList>
           
           <TabsContent value="de" className="space-y-4">
@@ -215,6 +259,17 @@ export default function BettingForm({
           
           <TabsContent value="xien" className="space-y-4">
             {renderBetTypeOptions()}
+          </TabsContent>
+          
+          <TabsContent value="bacanh" className="space-y-4">
+            <div className="space-y-3">
+              <Label className="text-base">Ba càng (3 số cuối giải ĐB):</Label>
+              
+              <div className="mt-2 text-sm text-gray-600">
+                <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
         
@@ -250,7 +305,7 @@ export default function BettingForm({
               placeholder="Nhập số (Enter để thêm)"
               className="flex-grow"
               onKeyDown={addTempNumber}
-              maxLength={betMode === "lo" && betType === "Lô 3 số" ? 3 : 2}
+              maxLength={actualBetMode === "lo" && betType === "Lô 3 số" || actualBetMode === "bacanh" ? 3 : 2}
             />
             <Button variant="outline" onClick={onClearAll} title="Xóa tất cả">
               <Trash2 className="h-4 w-4" />
@@ -261,23 +316,29 @@ export default function BettingForm({
           </div>
           
           <div className="mt-4 text-sm text-gray-500">
-            {betMode === "de" && "Bạn có thể chọn nhiều số đề khác nhau"}
-            {betMode === "lo" && betType === "Lô 2 số" && (
+            {actualBetMode === "de" && "Bạn có thể chọn nhiều số đề khác nhau"}
+            {actualBetMode === "lo" && betType === "Lô 2 số" && (
               <>
                 <p>Bạn có thể chọn nhiều số lô 2 chữ số khác nhau</p>
-                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {PRIZE_RATES.lo2so}x</p>
+                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {prizeRates.lo2so}x</p>
               </>
             )}
-            {betMode === "lo" && betType === "Lô 3 số" && (
+            {actualBetMode === "lo" && betType === "Lô 3 số" && (
               <>
                 <p>Bạn có thể chọn nhiều số lô 3 chữ số khác nhau</p>
-                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {PRIZE_RATES.lo3so}x</p>
+                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {prizeRates.lo3so}x</p>
               </>
             )}
-            {betMode === "xien" && (
+            {actualBetMode === "xien" && (
               <>
                 <p>Bạn cần chọn đúng {xienCount} số cho xiên {xienCount}</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {betType === "Xiên 2" ? PRIZE_RATES.xienhai : betType === "Xiên 3" ? PRIZE_RATES.xienba : PRIZE_RATES.xienbon}x</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {betType === "Xiên 2" ? prizeRates.xienhai : betType === "Xiên 3" ? prizeRates.xienba : prizeRates.xienbon}x</p>
+              </>
+            )}
+            {actualBetMode === "bacanh" && (
+              <>
+                <p>Bạn cần chọn số có 3 chữ số cho Ba càng</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
               </>
             )}
           </div>
@@ -330,7 +391,7 @@ export default function BettingForm({
           <div>
             <span className="text-gray-700">Tổng tiền cược:</span>
             <span className="font-mono font-bold text-lg ml-2">
-              {betMode === "lo" ? (
+              {actualBetMode === "lo" ? (
                 <>
                   {(betAmount * selectedNumbers.length).toLocaleString()} VNĐ 
                   {selectedNumbers.length > 1 && (
@@ -339,7 +400,7 @@ export default function BettingForm({
                     </span>
                   )}
                 </>
-              ) : betMode === "de" ? (
+              ) : actualBetMode === "de" ? (
                 <>
                   {(betAmount * selectedNumbers.length).toLocaleString()} VNĐ
                   {selectedNumbers.length > 1 && (
@@ -360,7 +421,8 @@ export default function BettingForm({
               betAmount <= 0 || 
               betAmount > balance || 
               selectedNumbers.length === 0 ||
-              (betMode === "xien" && selectedNumbers.length !== xienCount)
+              (actualBetMode === "xien" && selectedNumbers.length !== xienCount) ||
+              (actualBetMode === "bacanh" && selectedNumbers.some(num => num.length !== 3))
             }
           >
             {isSubmitting ? (
@@ -379,9 +441,15 @@ export default function BettingForm({
           </p>
         )}
         
-        {betMode === "xien" && selectedNumbers.length !== xienCount && (
+        {actualBetMode === "xien" && selectedNumbers.length !== xienCount && (
           <p className="text-amber-500 text-sm">
             Cần chọn đúng {xienCount} số để đánh xiên {xienCount}. Hiện tại bạn đã chọn {selectedNumbers.length} số.
+          </p>
+        )}
+        
+        {actualBetMode === "bacanh" && selectedNumbers.some(num => num.length !== 3) && (
+          <p className="text-amber-500 text-sm">
+            Đối với Ba càng, mỗi số phải có 3 chữ số.
           </p>
         )}
         

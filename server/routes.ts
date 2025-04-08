@@ -345,6 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Các tỷ lệ cho lô
       lo2so: 70,      // Lô 2 số: 1 số trúng x 70đ
       lo3so: 700,     // Lô 3 số: 1 số trúng x 700đ
+      bacanh: 880,    // Ba càng: 1 số trúng x 880đ
       xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
       xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
       xienbon: 100,   // Xiên 4: 1 bộ 4 trúng x 100đ
@@ -525,6 +526,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Giả lập: 2% xác suất thắng
             hasWon = Math.random() < 0.02;
             winMultiplier = 100;
+            break;
+          case "bacanh": // Ba càng (3 số cuối của giải đặc biệt)
+            const specialNum = lotteryResults.special;
+            const lastThree = specialNum.slice(-3);
+            hasWon = bet.numbers.includes(lastThree);
+            winMultiplier = 880;
             break;
           default:
             // Giả lập: 20% xác suất thắng
