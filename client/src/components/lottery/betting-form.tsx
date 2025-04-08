@@ -87,11 +87,13 @@ export default function BettingForm({
     // Lô được tính theo số điểm (1 điểm = 24.000đ)
     if (betMode === "lo") {
       const numPoints = betAmount / DEFAULT_LO_AMOUNT;
-      setPotentialWinnings(numPoints * rate * 24000); // Tiền thắng = số điểm * tỷ lệ * 24.000đ
+      // Số lượng số đã chọn * số điểm * tỷ lệ * 24.000đ
+      const numSelectedNumbers = selectedNumbers.length || 1;
+      setPotentialWinnings(numSelectedNumbers * numPoints * rate * 24000);
     } else {
       setPotentialWinnings(betAmount * rate / 1000);
     }
-  }, [betAmount, betMode, betType, xienCount]);
+  }, [betAmount, betMode, betType, xienCount, selectedNumbers.length]);
 
   // Cập nhật loại cược khi người dùng chọn chế độ
   useEffect(() => {
@@ -340,7 +342,20 @@ export default function BettingForm({
         <div className="flex justify-between w-full items-center">
           <div>
             <span className="text-gray-700">Tổng tiền cược:</span>
-            <span className="font-mono font-bold text-lg ml-2">{betAmount.toLocaleString()} VNĐ</span>
+            <span className="font-mono font-bold text-lg ml-2">
+              {betMode === "lo" ? (
+                <>
+                  {betAmount.toLocaleString()} VNĐ 
+                  {selectedNumbers.length > 1 && (
+                    <span className="text-sm text-gray-500 ml-1">
+                      (x{selectedNumbers.length} số = {(betAmount * selectedNumbers.length).toLocaleString()} VNĐ)
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>{betAmount.toLocaleString()} VNĐ</>
+              )}
+            </span>
           </div>
           <Button 
             onClick={onPlaceBet} 
