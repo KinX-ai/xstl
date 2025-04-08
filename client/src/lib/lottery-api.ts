@@ -81,8 +81,45 @@ export async function createTransaction(transactionData: {
   return response.json();
 }
 
+// Admin function to process a specific transaction
+export async function processTransaction(transactionId: number): Promise<any> {
+  const response = await apiRequest("POST", `/api/admin/process-transaction/${transactionId}`);
+  return response.json();
+}
+
 export async function getUserTransactions(): Promise<any[]> {
   const response = await apiRequest("GET", "/api/transactions");
+  return response.json();
+}
+
+// Admin functions
+export async function getAdminUsers(): Promise<any[]> {
+  const response = await apiRequest("GET", "/api/admin/users");
+  return response.json();
+}
+
+export async function getPendingTransactions(): Promise<any[]> {
+  const response = await apiRequest("GET", "/api/admin/pending-transactions");
+  return response.json();
+}
+
+export async function getPendingBets(): Promise<any[]> {
+  const response = await apiRequest("GET", "/api/admin/pending-bets");
+  return response.json();
+}
+
+export async function processAdminBalance(data: {
+  userId: number;
+  amount: number;
+  type: "deposit" | "withdraw";
+  details?: string;
+}): Promise<any> {
+  const response = await apiRequest("POST", "/api/admin/process-balance", data);
+  return response.json();
+}
+
+export async function processPrizes(): Promise<any> {
+  const response = await apiRequest("POST", "/api/admin/process-prizes");
   return response.json();
 }
 

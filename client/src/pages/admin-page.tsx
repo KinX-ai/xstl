@@ -37,6 +37,14 @@ import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
+import { 
+  processTransaction,
+  getPendingTransactions,
+  getAdminUsers,
+  getPendingBets,
+  processPrizes,
+  processAdminBalance
+} from "@/lib/lottery-api";
 
 // Định nghĩa tỷ lệ trả thưởng cho các loại giải
 const DEFAULT_PRIZE_RATES = {
@@ -87,8 +95,7 @@ export default function AdminPage() {
     queryKey: ["/api/admin/users"],
     queryFn: async () => {
       try {
-        const response = await apiRequest("GET", "/api/admin/users");
-        return await response.json();
+        return await getAdminUsers();
       } catch (error) {
         console.error("Error fetching users:", error);
         return [];
@@ -102,10 +109,23 @@ export default function AdminPage() {
     queryKey: ["/api/admin/pending-bets"],
     queryFn: async () => {
       try {
-        const response = await apiRequest("GET", "/api/admin/pending-bets");
-        return await response.json();
+        return await getPendingBets();
       } catch (error) {
         console.error("Error fetching pending bets:", error);
+        return [];
+      }
+    },
+    enabled: !!user && user.role === "admin",
+  });
+  
+  // Lấy danh sách giao dịch đang chờ xử lý (nạp/rút tiền)
+  const { data: pendingTransactions, isLoading: isLoadingPendingTransactions } = useQuery({
+    queryKey: ["/api/admin/pending-transactions"],
+    queryFn: async () => {
+      try {
+        return await getPendingTransactions();
+      } catch (error) {
+        console.error("Error fetching pending transactions:", error);
         return [];
       }
     },
@@ -182,8 +202,7 @@ export default function AdminPage() {
   // Mutation để xử lý trả thưởng
   const processPrizesMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/admin/process-prizes");
-      return await response.json();
+      return await processPrizes();
     },
     onSuccess: (data) => {
       toast({
@@ -201,11 +220,33 @@ export default function AdminPage() {
     }
   });
   
+  // Mutation để xử lý yêu cầu nạp/rút tiền cụ thể
+  const processTransactionMutation = useMutation({
+    mutationFn: async (transactionId: number) => {
+      // Sử dụng API helper function từ lottery-api.ts
+      return await processTransaction(transactionId);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Xử lý giao dịch thành công",
+        description: "Yêu cầu nạp/rút tiền đã được xử lý thành công",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Xử lý giao dịch thất bại",
+        description: error instanceof Error ? error.message : "Có lỗi xảy ra khi xử lý giao dịch",
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Mutation để xử lý nạp/rút tiền
   const processBalanceMutation = useMutation({
     mutationFn: async (data: { userId: number, amount: number, type: string, details?: string }) => {
-      const response = await apiRequest("POST", "/api/admin/process-balance", data);
-      return await response.json();
+      return await processAdminBalance(data);
     },
     onSuccess: () => {
       toast({
@@ -282,10 +323,11 @@ export default function AdminPage() {
         </div>
         
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="rates">Tỷ Lệ Trả Thưởng</TabsTrigger>
             <TabsTrigger value="pending">Xử Lý Trả Thưởng</TabsTrigger>
             <TabsTrigger value="users">Quản Lý Người Dùng</TabsTrigger>
+            <TabsTrigger value="transactions">Nạp/Rút Tiền</TabsTrigger>
           </TabsList>
           
           {/* Tab Quản lý tỷ lệ trả thưởng */}
@@ -577,104 +619,6 @@ export default function AdminPage() {
                   </div>
                 ) : users && users.length > 0 ? (
                   <div className="space-y-6">
-                    {/* Form nạp/rút tiền */}
-                    <Card className="border-dashed">
-                      <CardHeader>
-                        <CardTitle className="text-lg">Nạp/Rút Tiền Cho Người Dùng</CardTitle>
-                        <CardDescription>
-                          Thực hiện giao dịch nạp hoặc rút tiền cho người dùng
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="user-select">Chọn người dùng</Label>
-                            <select 
-                              id="user-select"
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
-                              value={selectedUserId || ""}
-                              onChange={(e) => setSelectedUserId(parseInt(e.target.value))}
-                            >
-                              <option value="">Chọn người dùng...</option>
-                              {users.map((user: any) => (
-                                <option key={user.id} value={user.id}>
-                                  {user.username} (ID: {user.id}) - Số dư: {user.balance?.toLocaleString()}đ
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          
-                          <div className="grid gap-2">
-                            <Label htmlFor="transaction-type">Loại giao dịch</Label>
-                            <select 
-                              id="transaction-type"
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
-                              value={transactionType}
-                              onChange={(e) => setTransactionType(e.target.value)}
-                            >
-                              <option value="deposit">Nạp tiền (Thêm vào số dư)</option>
-                              <option value="withdraw">Rút tiền (Trừ vào số dư)</option>
-                            </select>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="amount">Số tiền</Label>
-                            <Input
-                              id="amount"
-                              type="number"
-                              placeholder="50000"
-                              min="0"
-                              value={transactionAmount || ""}
-                              onChange={(e) => setTransactionAmount(parseFloat(e.target.value))}
-                            />
-                          </div>
-                          
-                          <div className="grid gap-2">
-                            <Label htmlFor="details">Ghi chú</Label>
-                            <Input
-                              id="details"
-                              placeholder="Chi tiết giao dịch..."
-                              value={transactionDetails}
-                              onChange={(e) => setTransactionDetails(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          className="w-full mt-2"
-                          onClick={() => {
-                            if (!selectedUserId) {
-                              toast({ title: "Lỗi", description: "Vui lòng chọn người dùng", variant: "destructive" });
-                              return;
-                            }
-                            if (!transactionAmount || transactionAmount <= 0) {
-                              toast({ title: "Lỗi", description: "Vui lòng nhập số tiền hợp lệ", variant: "destructive" });
-                              return;
-                            }
-                            processBalanceMutation.mutate({
-                              userId: selectedUserId,
-                              amount: transactionAmount,
-                              type: transactionType,
-                              details: transactionDetails || undefined
-                            });
-                          }}
-                          disabled={processBalanceMutation.isPending || !selectedUserId}
-                        >
-                          {processBalanceMutation.isPending ? (
-                            <>
-                              <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...
-                            </>
-                          ) : (
-                            <>
-                              <DollarSignIcon className="mr-2 h-4 w-4" /> 
-                              {transactionType === "deposit" ? "Nạp Tiền" : "Rút Tiền"}
-                            </>
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
                     
                     {/* Danh sách người dùng */}
                     <div className="overflow-x-auto">
@@ -720,6 +664,185 @@ export default function AdminPage() {
                     <p className="text-gray-500">Không có người dùng nào trong hệ thống.</p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Tab Nạp/Rút tiền */}
+          <TabsContent value="transactions">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <DollarSignIcon className="mr-2 h-5 w-5" /> Quản Lý Nạp/Rút Tiền
+                </CardTitle>
+                <CardDescription>
+                  Xử lý các yêu cầu nạp tiền và rút tiền của người dùng
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Form nạp/rút tiền */}
+                  <Card className="border-dashed">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Nạp/Rút Tiền Cho Người Dùng</CardTitle>
+                      <CardDescription>
+                        Thực hiện giao dịch nạp hoặc rút tiền cho người dùng
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="user-select">Chọn người dùng</Label>
+                          <select 
+                            id="user-select"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                            value={selectedUserId || ""}
+                            onChange={(e) => setSelectedUserId(parseInt(e.target.value))}
+                          >
+                            <option value="">Chọn người dùng...</option>
+                            {users?.map((user: any) => (
+                              <option key={user.id} value={user.id}>
+                                {user.username} (ID: {user.id}) - Số dư: {user.balance?.toLocaleString()}đ
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="grid gap-2">
+                          <Label htmlFor="transaction-type">Loại giao dịch</Label>
+                          <select 
+                            id="transaction-type"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                            value={transactionType}
+                            onChange={(e) => setTransactionType(e.target.value)}
+                          >
+                            <option value="deposit">Nạp tiền (Thêm vào số dư)</option>
+                            <option value="withdraw">Rút tiền (Trừ vào số dư)</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="amount">Số tiền</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            placeholder="50000"
+                            min="0"
+                            value={transactionAmount || ""}
+                            onChange={(e) => setTransactionAmount(parseFloat(e.target.value))}
+                          />
+                        </div>
+                        
+                        <div className="grid gap-2">
+                          <Label htmlFor="details">Ghi chú</Label>
+                          <Input
+                            id="details"
+                            placeholder="Chi tiết giao dịch..."
+                            value={transactionDetails}
+                            onChange={(e) => setTransactionDetails(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        className="w-full mt-2"
+                        onClick={() => {
+                          if (!selectedUserId) {
+                            toast({ title: "Lỗi", description: "Vui lòng chọn người dùng", variant: "destructive" });
+                            return;
+                          }
+                          if (!transactionAmount || transactionAmount <= 0) {
+                            toast({ title: "Lỗi", description: "Vui lòng nhập số tiền hợp lệ", variant: "destructive" });
+                            return;
+                          }
+                          processBalanceMutation.mutate({
+                            userId: selectedUserId,
+                            amount: transactionAmount,
+                            type: transactionType,
+                            details: transactionDetails || undefined
+                          });
+                        }}
+                        disabled={processBalanceMutation.isPending || !selectedUserId}
+                      >
+                        {processBalanceMutation.isPending ? (
+                          <>
+                            <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...
+                          </>
+                        ) : (
+                          <>
+                            <DollarSignIcon className="mr-2 h-4 w-4" /> 
+                            {transactionType === "deposit" ? "Nạp Tiền" : "Rút Tiền"}
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Yêu cầu nạp/rút tiền đang chờ */}
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-4">Yêu Cầu Nạp/Rút Tiền Đang Chờ</h3>
+                    {isLoadingPendingTransactions ? (
+                      <div className="flex justify-center items-center p-10">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                      </div>
+                    ) : pendingTransactions && pendingTransactions.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ID</TableHead>
+                              <TableHead>Người dùng</TableHead>
+                              <TableHead>Loại giao dịch</TableHead>
+                              <TableHead className="text-right">Số tiền</TableHead>
+                              <TableHead>Chi tiết</TableHead>
+                              <TableHead>Ngày tạo</TableHead>
+                              <TableHead>Thao tác</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pendingTransactions.map((transaction: any) => (
+                              <TableRow key={transaction.id}>
+                                <TableCell>{transaction.id}</TableCell>
+                                <TableCell>{transaction.username}</TableCell>
+                                <TableCell>
+                                  <Badge variant={transaction.type === "deposit" ? "secondary" : "outline"}>
+                                    {transaction.type === "deposit" ? "Nạp tiền" : "Rút tiền"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right font-mono font-medium">
+                                  {transaction.amount.toLocaleString()}đ
+                                </TableCell>
+                                <TableCell>{transaction.details || "-"}</TableCell>
+                                <TableCell>{new Date(transaction.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => {
+                                        processTransactionMutation.mutate(transaction.id);
+                                      }}
+                                      disabled={processTransactionMutation.isPending}
+                                    >
+                                      {processTransactionMutation.isPending ? (
+                                        <RefreshCwIcon className="h-4 w-4 animate-spin" />
+                                      ) : "Duyệt"}
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">Không có yêu cầu nạp/rút tiền nào đang chờ xử lý.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

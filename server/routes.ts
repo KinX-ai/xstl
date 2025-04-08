@@ -363,6 +363,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Process a specific transaction by ID (admin only)
+  app.post("/api/admin/process-transaction/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      const transactionId = parseInt(req.params.id);
+      if (isNaN(transactionId)) {
+        return res.status(400).json({ message: "Invalid transaction ID" });
+      }
+      
+      // Find the transaction
+      const transaction = Array.from(storage.transactions.values())
+        .find(t => t.id === transactionId && t.status === "pending");
+      
+      if (!transaction) {
+        return res.status(404).json({ message: "Transaction not found or already processed" });
+      }
+      
+      // Get the user
+      const user = await storage.getUser(transaction.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Process the transaction based on type
+      if (transaction.type === "deposit") {
+        // Add funds to user's account
+        await storage.updateUserBalance(user.id, transaction.amount);
+      } else if (transaction.type === "withdraw") {
+        // Check if user has enough balance
+        if (user.balance < transaction.amount) {
+          return res.status(400).json({ message: "User has insufficient balance" });
+        }
+        // Deduct funds from user's account
+        await storage.updateUserBalance(user.id, -transaction.amount);
+      } else {
+        return res.status(400).json({ message: "Invalid transaction type" });
+      }
+      
+      // Update transaction status
+      await storage.updateTransactionStatus(transaction.id, "completed");
+      
+      // Get updated transaction and user data
+      const updatedTransaction = await storage.getTransactionById(transactionId);
+      const updatedUser = await storage.getUser(user.id);
+      
+      // Create a response record
+      const processedTransaction = {
+        ...updatedTransaction,
+        userBalance: updatedUser?.balance || 0
+      };
+      
+      res.json(processedTransaction);
+    } catch (error) {
+      console.error("Error processing transaction:", error);
+      res.status(500).json({ message: "Failed to process transaction" });
+    }
+  });
+  
   // Get prize rates (admin only)
   app.get("/api/admin/prize-rates", async (req, res) => {
     // In a real implementation, we'd get this from database

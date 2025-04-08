@@ -16,9 +16,12 @@ export interface IStorage {
   
   createBet(bet: any): Promise<Bet>;
   getUserBets(userId: number): Promise<Bet[]>;
+  getPendingBets(): Promise<Bet[]>;
   
   createTransaction(transaction: any): Promise<Transaction>;
   getUserTransactions(userId: number): Promise<Transaction[]>;
+  getTransactionById(id: number): Promise<Transaction | undefined>;
+  updateTransactionStatus(id: number, status: string): Promise<Transaction>;
   
   getLotteryResults(): Promise<LotteryResult[]>;
   saveLotteryResults(results: any): Promise<LotteryResult>;
@@ -123,6 +126,20 @@ export class DatabaseStorage implements IStorage {
       return dateB.getTime() - dateA.getTime();
     });
   }
+  
+  async getPendingBets(): Promise<Bet[]> {
+    const result = await db
+      .select()
+      .from(bets)
+      .where(eq(bets.status, "pending"));
+    
+    // Sort manually since orderBy is having type issues
+    return result.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+  }
 
   async createTransaction(transactionData: any): Promise<Transaction> {
     const transactionToInsert = {
@@ -155,6 +172,27 @@ export class DatabaseStorage implements IStorage {
       const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
       return dateB.getTime() - dateA.getTime();
     });
+  }
+  
+  async getTransactionById(id: number): Promise<Transaction | undefined> {
+    const result = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, id));
+    
+    return result[0];
+  }
+  
+  async updateTransactionStatus(id: number, status: string): Promise<Transaction> {
+    const result = await db
+      .update(transactions)
+      .set({ status })
+      .where(eq(transactions.id, id))
+      .returning();
+    
+    const updatedTransaction = result[0];
+    this.transactions.set(id, updatedTransaction); // Update the Map for admin access
+    return updatedTransaction;
   }
 
   async getLotteryResults(): Promise<LotteryResult[]> {
