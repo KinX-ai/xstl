@@ -35,7 +35,6 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // We still need these for admin access to be compatible with existing code
   users: Map<number, User> = new Map();
   bets: Map<number, Bet> = new Map();
   transactions: Map<number, Transaction> = new Map();
@@ -48,6 +47,67 @@ export class DatabaseStorage implements IStorage {
       },
       createTableIfMissing: true
     });
+    this.refreshCaches();
+  }
+
+  // Refresh caches from database
+  private async refreshCaches() {
+    // Load users
+    const allUsers = await db.select().from(users);
+    this.users.clear();
+    allUsers.forEach(user => this.users.set(user.id, user));
+
+    // Load bets
+    const allBets = await db.select().from(bets);
+    this.bets.clear();
+    allBets.forEach(bet => this.bets.set(bet.id, bet));
+
+    // Load transactions  
+    const allTransactions = await db.select().from(transactions);
+    this.transactions.clear();
+    allTransactions.forEach(tx => this.transactions.set(tx.id, tx));
+  }
+
+  async createBet(bet: any): Promise<Bet> {
+    const result = await db.insert(bets).values(bet).returning();
+    const newBet = result[0];
+    this.bets.set(newBet.id, newBet);
+    return newBet;
+  }
+
+  async getUserBets(userId: number): Promise<Bet[]> {
+    return await db.select().from(bets).where(eq(bets.userId, userId));
+  }
+
+  async getPendingBets(): Promise<Bet[]> {
+    return await db.select().from(bets).where(eq(bets.status, "pending"));
+  }
+
+  async createTransaction(transaction: any): Promise<Transaction> {
+    const result = await db.insert(transactions).values(transaction).returning();
+    const newTransaction = result[0];
+    this.transactions.set(newTransaction.id, newTransaction);
+    return newTransaction;
+  }
+
+  async getUserTransactions(userId: number): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.userId, userId));
+  }
+
+  async getTransactionById(id: number): Promise<Transaction | undefined> {
+    const result = await db.select().from(transactions).where(eq(transactions.id, id));
+    return result[0];
+  }
+
+  async updateTransactionStatus(id: number, status: string): Promise<Transaction> {
+    const result = await db
+      .update(transactions)
+      .set({ status })
+      .where(eq(transactions.id, id))
+      .returning();
+    const updatedTransaction = result[0];
+    this.transactions.set(id, updatedTransaction);
+    return updatedTransaction;
   }
 
   async getUser(id: number): Promise<User | undefined> {
