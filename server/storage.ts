@@ -21,19 +21,25 @@ export interface IStorage {
   getLotteryResults(): Promise<LotteryResult[]>;
   saveLotteryResults(results: any): Promise<LotteryResult>;
   
-  sessionStore: session.SessionStore;
+  // For admin access
+  users: Map<number, User>;
+  bets: Map<number, Bet>;
+  transactions: Map<number, Transaction>;
+  
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private bets: Map<number, Bet>;
-  private transactions: Map<number, Transaction>;
-  private lotteryResults: Map<number, LotteryResult>;
+  // Made public for admin endpoints access
+  users: Map<number, User>;
+  bets: Map<number, Bet>;
+  transactions: Map<number, Transaction>;
+  lotteryResults: Map<number, LotteryResult>;
   currentId: number;
   currentBetId: number;
   currentTransactionId: number;
   currentLotteryResultId: number;
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store; // Changed from SessionStore to Store
 
   constructor() {
     this.users = new Map();
@@ -72,6 +78,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id, 
       balance: 500000, // Start with 500,000 VND
+      role: insertUser.email === "admin@example.com" ? "admin" : "user", // Set admin role for specific email
       createdAt: now
     };
     this.users.set(id, user);

@@ -217,6 +217,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch bets" });
     }
   });
+  
+  // ------------ ADMIN ROUTES ------------
+  
+  // Get all users (admin only)
+  app.get("/api/admin/users", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      // In a real app, would get from database
+      // For now, return all users from memory
+      const users = Array.from(storage.users.values());
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Get pending bets that need to be processed (admin only)
+  app.get("/api/admin/pending-bets", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      // Get all bets with status "pending"
+      const pendingBets = Array.from(storage.bets.values())
+        .filter(bet => bet.status === "pending")
+        .map(async (bet) => {
+          // Get username for each bet
+          const user = await storage.getUser(bet.userId);
+          return {
+            ...bet,
+            username: user?.username || "Unknown",
+          };
+        });
+        
+      const betsWithUsernames = await Promise.all(pendingBets);
+      
+      res.json(betsWithUsernames);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pending bets" });
+    }
+  });
+  
+  // Get prize rates (admin only)
+  app.get("/api/admin/prize-rates", async (req, res) => {
+    // In a real implementation, we'd get this from database
+    // For now, just return static values
+    const prizeRates = {
+      special: 80000, // Đặc biệt: 1 số trúng x 80.000đ
+      first: 25000,   // Giải nhất: 1 số trúng x 25.000đ
+      second: 10000,  // Giải nhì: 1 số trúng x 10.000đ
+      third: 5000,    // Giải ba: 1 số trúng x 5.000đ
+      fourth: 1200,   // Giải tư: 1 số trúng x 1.200đ
+      fifth: 600,     // Giải năm: 1 số trúng x 600đ
+      sixth: 400,     // Giải sáu: 1 số trúng x 400đ
+      seventh: 200,   // Giải bảy: 1 số trúng x 200đ
+      // Các tỷ lệ cho lô
+      lo2so: 70,      // Lô 2 số: 1 số trúng x 70đ
+      lo3so: 700,     // Lô 3 số: 1 số trúng x 700đ
+      xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
+      xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
+      xienbon: 100,   // Xiên 4: 1 bộ 4 trúng x 100đ
+    };
+    
+    res.json(prizeRates);
+  });
+  
+  // Save prize rates (admin only)
+  app.post("/api/admin/prize-rates", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      // In a real implementation, we'd save this to database
+      // For now, just return the received data
+      res.json(req.body);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to save prize rates" });
+    }
+  });
+  
+  // Generate new lottery results (admin only)
+  app.post("/api/admin/generate-results", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      const mockResult = await createMockLotteryResult();
+      res.json(mockResult);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate lottery results" });
+    }
+  });
+  
+  // Process and pay out prizes for pending bets (admin only)
+  app.post("/api/admin/process-prizes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      // Get the latest lottery results
+      const results = await storage.getLotteryResults();
+      if (results.length === 0) {
+        return res.status(400).json({ message: "No lottery results available" });
+      }
+      
+      const latestResult = results[0];
+      
+      // Get all pending bets
+      const pendingBets = Array.from(storage.bets.values())
+        .filter(bet => bet.status === "pending");
+      
+      let processedCount = 0;
+      let totalWinAmount = 0;
+      
+      // Process each bet
+      for (const bet of pendingBets) {
+        // Simulating win/loss logic - in a real implementation this would be more complex
+        // For simplicity, let's say 20% of bets win
+        const hasWon = Math.random() < 0.2;
+        
+        if (hasWon) {
+          // Calculate win amount based on bet type and amount
+          // This is a very simplified version
+          let winMultiplier = 0;
+          switch (bet.betType) {
+            case "de":
+              winMultiplier = 80;
+              break;
+            case "lo":
+              winMultiplier = 70;
+              break;
+            case "xien2":
+              winMultiplier = 15;
+              break;
+            case "xien3":
+              winMultiplier = 40;
+              break;
+            case "xien4":
+              winMultiplier = 100;
+              break;
+            default:
+              winMultiplier = 50;
+          }
+          
+          const winAmount = bet.amount * winMultiplier;
+          
+          // Update bet status and win amount
+          bet.status = "won";
+          bet.winAmount = winAmount;
+          bet.result = "won";
+          
+          // Update user balance
+          await storage.updateUserBalance(bet.userId, winAmount);
+          
+          // Create transaction record for the win
+          await storage.createTransaction({
+            userId: bet.userId,
+            type: "win",
+            amount: winAmount,
+            details: `Trúng thưởng ${bet.betType}: ${bet.numbers.join(", ")}`,
+            status: "completed"
+          });
+          
+          totalWinAmount += winAmount;
+        } else {
+          // Mark as lost
+          bet.status = "lost";
+          bet.result = "lost";
+          bet.winAmount = 0;
+        }
+        
+        processedCount++;
+      }
+      
+      res.json({
+        success: true,
+        processed: processedCount,
+        winAmount: totalWinAmount
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to process prizes" });
+    }
+  });
 
   const httpServer = createServer(app);
 
