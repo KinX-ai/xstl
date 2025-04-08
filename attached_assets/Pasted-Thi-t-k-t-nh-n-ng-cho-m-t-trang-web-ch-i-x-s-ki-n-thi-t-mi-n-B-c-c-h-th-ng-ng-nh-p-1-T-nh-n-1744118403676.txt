@@ -1,0 +1,163 @@
+Thiết kế tính năng cho một trang web chơi xổ số kiến thiết miền Bắc có hệ thống đăng nhập
+
+1. Tính năng đăng nhập và đăng ký:
+
+Mô tả:
+
+Người dùng cần đăng nhập vào tài khoản để truy cập và sử dụng các dịch vụ trên trang web.
+
+Nếu chưa có tài khoản, người dùng có thể đăng ký bằng email, số điện thoại và mật khẩu.
+
+Yêu cầu:
+
+Biểu mẫu đăng nhập: Gồm trường tài khoản, mật khẩu và nút đăng nhập.
+
+Biểu mẫu đăng ký: Gồm trường nhập email, số điện thoại, mật khẩu và nút đăng ký.
+
+Tính năng quên mật khẩu: Gửi email khôi phục mật khẩu cho người dùng.
+
+2. Trang chính sau khi đăng nhập:
+
+Mô tả:
+
+Trang chính hiển thị thông tin cá nhân của người dùng, lịch sử chơi, và các trò chơi xổ số hiện có.
+
+Yêu cầu:
+
+Hiển thị tên người dùng, số dư tài khoản (nếu có).
+
+Bảng thông báo: Hiển thị kết quả xổ số mới nhất và các khuyến mãi.
+
+Nút để tham gia chơi xổ số.
+
+3. Chơi xổ số kiến thiết:
+
+Mô tả:
+
+Người dùng có thể chọn số hoặc sử dụng chức năng chọn số ngẫu nhiên.
+
+Người chơi xác nhận và đặt cược cho số đã chọn.
+
+Yêu cầu:
+
+Giao diện chọn số: Người dùng chọn số từ 00 đến 99.
+
+Tùy chọn đặt cược: Người chơi nhập số tiền muốn đặt.
+
+Nút xác nhận: Lưu thông tin đặt cược.
+
+4. Kết quả xổ số:
+
+Mô tả:
+
+Hiển thị kết quả xổ số mới nhất.
+
+So sánh kết quả với số người chơi đã chọn và thông báo thắng/thua.
+
+Yêu cầu:
+
+Kết quả xổ số được cập nhật theo thời gian thực.
+
+Giao diện hiển thị trực quan, dễ hiểu.
+
+5. Lịch sử chơi và giao dịch:
+
+Mô tả:
+
+Người dùng có thể xem lại lịch sử các số đã chơi, số tiền đã đặt cược, và kết quả.
+
+Yêu cầu:
+
+Hiển thị danh sách lịch sử chơi theo ngày tháng.
+
+Chi tiết mỗi lượt chơi: Số đã chọn, kết quả, số tiền thắng/thua.
+
+6. Hệ thống điểm thưởng và khuyến mãi:
+
+Mô tả:
+
+Người chơi tích lũy điểm thưởng khi tham gia chơi hoặc mời bạn bè đăng ký tài khoản.
+
+Điểm thưởng có thể dùng để đổi quà hoặc giảm giá khi chơi xổ số.
+
+Yêu cầu:
+
+Bảng xếp hạng người chơi tích cực.
+
+Cơ chế mời bạn bè: Gửi link hoặc mã giới thiệu.
+
+7. Bảo mật tài khoản:
+
+Mô tả:
+
+Tăng cường bảo mật cho tài khoản người dùng thông qua mã OTP hoặc xác thực hai yếu tố (2FA).
+
+Yêu cầu:
+
+Gửi mã OTP qua email hoặc SMS khi đăng nhập.
+
+Tùy chọn kích hoạt hoặc tắt xác thực 2FA.
+
+8. Tích hợp thanh toán:
+
+Mô tả:
+
+Người dùng có thể nạp tiền và rút tiền từ tài khoản để đặt cược.
+
+Yêu cầu:
+
+Hỗ trợ nhiều phương thức thanh toán như thẻ ngân hàng, ví điện tử.
+
+Giao diện nạp/rút tiền đơn giản, hiển thị rõ ràng số dư hiện tại.
+
+9. Hỗ trợ khách hàng:
+
+Mô tả:
+
+Cung cấp kênh hỗ trợ trực tuyến để giải đáp thắc mắc và xử lý sự cố.
+
+Yêu cầu:
+
+Chatbox trực tuyến hoặc hệ thống gửi yêu cầu hỗ trợ.
+
+Trung tâm FAQ giải đáp các câu hỏi phổ biến.
+
+10. Tính năng tùy chỉnh cá nhân:
+
+Mô tả:
+
+Người dùng có thể tùy chỉnh thông tin cá nhân và các cài đặt của tài khoản.
+
+Yêu cầu:
+
+Cập nhật thông tin cá nhân như email, số điện thoại.
+
+Tùy chọn ngôn ngữ và thông báo.
+
+11. Giao diện và trải nghiệm người dùng:
+
+Mô tả:
+
+Giao diện tối ưu cho cả máy tính và điện thoại di động.
+
+Thiết kế màu sắc tươi sáng, hấp dẫn.
+
+Yêu cầu:
+
+Tích hợp responsive design cho mọi thiết bị.
+
+Các hiệu ứng động mượt mà khi chọn số hoặc xem kết quả.
+
+12. Tính năng quản trị:
+
+Mô tả:
+
+Hệ thống quản trị giúp quản lý người dùng, kết quả xổ số, và các báo cáo doanh thu.
+
+Yêu cầu:
+
+Quản lý tài khoản người dùng: Xem, khóa, hoặc mở tài khoản.
+
+Cập nhật kết quả xổ số theo ngày.
+
+Báo cáo tổng quan: Số người chơi, số tiền cược, doanh thu.
