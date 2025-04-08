@@ -1,9 +1,11 @@
 import { users, bets, transactions, lotteryResults } from "@shared/schema";
 import type { User, InsertUser, Bet, Transaction, LotteryResult, insertBetSchema, insertTransactionSchema } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -29,63 +31,48 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  // Made public for admin endpoints access
-  users: Map<number, User>;
-  bets: Map<number, Bet>;
-  transactions: Map<number, Transaction>;
-  lotteryResults: Map<number, LotteryResult>;
-  currentId: number;
-  currentBetId: number;
-  currentTransactionId: number;
-  currentLotteryResultId: number;
-  sessionStore: session.Store; // Changed from SessionStore to Store
+export class DatabaseStorage implements IStorage {
+  // We still need these for admin access to be compatible with existing code
+  users: Map<number, User> = new Map();
+  bets: Map<number, Bet> = new Map();
+  transactions: Map<number, Transaction> = new Map();
+  sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.bets = new Map();
-    this.transactions = new Map();
-    this.lotteryResults = new Map();
-    this.currentId = 1;
-    this.currentBetId = 1;
-    this.currentTransactionId = 1;
-    this.currentLotteryResultId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
+    this.sessionStore = new PostgresSessionStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      createTableIfMissing: true
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const result = await db.select().from(users).where(eq(users.email, email));
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const now = new Date();
-    const user: User = { 
-      id,
-      username: insertUser.username, 
-      password: insertUser.password,
-      email: insertUser.email,
-      phoneNumber: insertUser.phoneNumber || null,
+    const userToInsert = {
+      ...insertUser,
       balance: 500000, // Start with 500,000 VND
-      role: insertUser.email === "admin@example.com" ? "admin" : "user", // Set admin role for specific email
-      createdAt: now
+      role: insertUser.email === "admin@example.com" ? "admin" : "user",
     };
-    this.users.set(id, user);
-    return user;
+
+    const result = await db.insert(users).values(userToInsert).returning();
+    const newUser = result[0];
+    this.users.set(newUser.id, newUser); // Update the Map for admin access
+    return newUser;
   }
 
   async updateUserBalance(userId: number, amount: number): Promise<User> {
@@ -93,17 +80,21 @@ export class MemStorage implements IStorage {
     if (!user) {
       throw new Error("User not found");
     }
-    
-    user.balance += amount;
-    this.users.set(userId, user);
-    return user;
+
+    const newBalance = user.balance + amount;
+    const result = await db
+      .update(users)
+      .set({ balance: newBalance })
+      .where(eq(users.id, userId))
+      .returning();
+
+    const updatedUser = result[0];
+    this.users.set(userId, updatedUser); // Update the Map for admin access
+    return updatedUser;
   }
 
   async createBet(betData: any): Promise<Bet> {
-    const id = this.currentBetId++;
-    const now = new Date();
-    const bet: Bet = {
-      id,
+    const betToInsert = {
       userId: betData.userId,
       numbers: betData.numbers,
       amount: betData.amount,
@@ -111,57 +102,87 @@ export class MemStorage implements IStorage {
       status: "pending",
       result: null,
       winAmount: null,
-      createdAt: now
     };
-    this.bets.set(id, bet);
-    return bet;
+
+    const result = await db.insert(bets).values(betToInsert).returning();
+    const newBet = result[0];
+    this.bets.set(newBet.id, newBet); // Update the Map for admin access
+    return newBet;
   }
 
   async getUserBets(userId: number): Promise<Bet[]> {
-    return Array.from(this.bets.values())
-      .filter(bet => bet.userId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const result = await db
+      .select()
+      .from(bets)
+      .where(eq(bets.userId, userId));
+    
+    // Sort manually since orderBy is having type issues
+    return result.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   async createTransaction(transactionData: any): Promise<Transaction> {
-    const id = this.currentTransactionId++;
-    const now = new Date();
-    const transaction: Transaction = {
-      id,
+    const transactionToInsert = {
       userId: transactionData.userId,
       type: transactionData.type,
       amount: transactionData.amount,
       details: transactionData.details || null,
       status: transactionData.status,
-      createdAt: now
     };
-    this.transactions.set(id, transaction);
-    return transaction;
+
+    const result = await db
+      .insert(transactions)
+      .values(transactionToInsert)
+      .returning();
+
+    const newTransaction = result[0];
+    this.transactions.set(newTransaction.id, newTransaction); // Update the Map for admin access
+    return newTransaction;
   }
 
   async getUserTransactions(userId: number): Promise<Transaction[]> {
-    return Array.from(this.transactions.values())
-      .filter(transaction => transaction.userId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const result = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId));
+    
+    // Sort manually since orderBy is having type issues
+    return result.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   async getLotteryResults(): Promise<LotteryResult[]> {
-    return Array.from(this.lotteryResults.values())
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+    const result = await db
+      .select()
+      .from(lotteryResults);
+    
+    // Sort manually since orderBy is having type issues
+    return result.sort((a, b) => {
+      const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+      const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   async saveLotteryResults(results: any): Promise<LotteryResult> {
-    const id = this.currentLotteryResultId++;
-    const now = new Date();
-    const lotteryResult: LotteryResult = {
-      id,
+    const lotteryResultToInsert = {
       date: new Date(results.date),
       results: results.results,
-      createdAt: now
     };
-    this.lotteryResults.set(id, lotteryResult);
-    return lotteryResult;
+
+    const result = await db
+      .insert(lotteryResults)
+      .values(lotteryResultToInsert)
+      .returning();
+
+    return result[0];
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
