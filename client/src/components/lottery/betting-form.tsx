@@ -50,7 +50,7 @@ export default function BettingForm({
   setBetMode
 }: BettingFormProps) {
   const [internalBetMode, setInternalBetMode] = useState<"de" | "lo" | "xien" | "bacanh">(betMode as "de" | "lo" | "xien" | "bacanh");
-  
+
   // Use internal or external state based on prop presence
   const actualBetMode = betMode || internalBetMode;
   const actualSetBetMode = (mode: string) => {
@@ -63,16 +63,16 @@ export default function BettingForm({
   const [xienCount, setXienCount] = useState<number>(2);
   const [tempNumbers, setTempNumbers] = useState<string[]>([]);
   const [potentialWinnings, setPotentialWinnings] = useState<number>(0);
-  
+
   // Lấy tỷ lệ thắng từ server
   const { data: serverPrizeRates } = useQuery({
     queryKey: ["/api/admin/prize-rates"],
     queryFn: fetchPrizeRates,
   });
-  
+
   // Sử dụng server rates nếu có, ngược lại dùng default
   const prizeRates = serverPrizeRates || PRIZE_RATES;
-  
+
   const predefinedAmounts = [10000, 20000, 50000, 100000, 200000];
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function BettingForm({
     } else if (actualBetMode === "bacanh") {
       rate = prizeRates.bacanh;
     }
-    
+
     // Lô được tính theo số điểm (1 điểm = 24.000đ)
     if (actualBetMode === "lo") {
       const numPoints = betAmount / DEFAULT_LO_AMOUNT;
@@ -167,7 +167,7 @@ export default function BettingForm({
               <SelectItem value="Đề đuôi">Đề đuôi (x{prizeRates.first})</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Đề đặc biệt:</strong> Đánh trúng 2 số cuối của giải đặc biệt</p>
             <p>• <strong>Đề đầu:</strong> Đánh trúng 2 số đầu của giải đặc biệt</p>
@@ -188,7 +188,7 @@ export default function BettingForm({
               <SelectItem value="Lô 3 số">Lô 3 số (x{prizeRates.lo3so})</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Lô 2 số:</strong> Đánh 2 số cuối, xuất hiện ở bất kỳ giải nào</p>
             <p>• <strong>Lô 3 số:</strong> Đánh 3 số cuối, xuất hiện ở bất kỳ giải nào</p>
@@ -211,7 +211,7 @@ export default function BettingForm({
               </Button>
             ))}
           </div>
-          
+
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Xiên 2:</strong> Cần 2 số đều xuất hiện ở bất kỳ giải nào</p>
             <p>• <strong>Xiên 3:</strong> Cần 3 số đều xuất hiện ở bất kỳ giải nào</p>
@@ -223,7 +223,7 @@ export default function BettingForm({
       return (
         <div className="space-y-3">
           <Label className="text-base">Ba càng (3 số cuối giải ĐB):</Label>
-          
+
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
             <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
@@ -231,7 +231,7 @@ export default function BettingForm({
         </div>
       );
     }
-    
+
     return null;
   };
 
@@ -248,23 +248,23 @@ export default function BettingForm({
             <TabsTrigger value="xien">Đánh Xiên</TabsTrigger>
             <TabsTrigger value="bacanh">Ba Càng</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="de" className="space-y-4">
             {renderBetTypeOptions()}
           </TabsContent>
-          
+
           <TabsContent value="lo" className="space-y-4">
             {renderBetTypeOptions()}
           </TabsContent>
-          
+
           <TabsContent value="xien" className="space-y-4">
             {renderBetTypeOptions()}
           </TabsContent>
-          
+
           <TabsContent value="bacanh" className="space-y-4">
             <div className="space-y-3">
               <Label className="text-base">Ba càng (3 số cuối giải ĐB):</Label>
-              
+
               <div className="mt-2 text-sm text-gray-600">
                 <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
                 <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
@@ -272,7 +272,7 @@ export default function BettingForm({
             </div>
           </TabsContent>
         </Tabs>
-        
+
         <div className="mt-6 mb-4">
           <Label className="text-base mb-2 block">Chọn Số:</Label>
           <div className="flex flex-wrap gap-2 mb-3">
@@ -299,7 +299,7 @@ export default function BettingForm({
               </div>
             ))}
           </div>
-          
+
           <div className="flex space-x-2">
             <Input
               placeholder="Nhập số (Enter để thêm)"
@@ -314,7 +314,7 @@ export default function BettingForm({
               <RefreshCcwDot className="h-4 w-4" />
             </Button>
           </div>
-          
+
           <div className="mt-4 text-sm text-gray-500">
             {actualBetMode === "de" && "Bạn có thể chọn nhiều số đề khác nhau"}
             {actualBetMode === "lo" && betType === "Lô 2 số" && (
@@ -343,7 +343,7 @@ export default function BettingForm({
             )}
           </div>
         </div>
-        
+
         <div className="mb-4">
           <Label className="text-base block mb-2">Số Tiền Cược (VNĐ):</Label>
           <div className="flex flex-wrap gap-2">
@@ -370,7 +370,7 @@ export default function BettingForm({
             </div>
           </div>
         </div>
-        
+
         {potentialWinnings > 0 && (
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center text-green-700 font-medium mb-1">
@@ -385,7 +385,7 @@ export default function BettingForm({
           </div>
         )}
       </CardContent>
-      
+
       <CardFooter className="flex flex-col space-y-3">
         <div className="flex justify-between w-full items-center">
           <div>
@@ -434,25 +434,25 @@ export default function BettingForm({
             )}
           </Button>
         </div>
-        
+
         {betAmount > balance && (
           <p className="text-red-500 text-sm">
             Số dư không đủ. Vui lòng nạp thêm tiền hoặc giảm số tiền cược.
           </p>
         )}
-        
+
         {actualBetMode === "xien" && selectedNumbers.length !== xienCount && (
           <p className="text-amber-500 text-sm">
             Cần chọn đúng {xienCount} số để đánh xiên {xienCount}. Hiện tại bạn đã chọn {selectedNumbers.length} số.
           </p>
         )}
-        
+
         {actualBetMode === "bacanh" && selectedNumbers.some(num => num.length !== 3) && (
           <p className="text-amber-500 text-sm">
             Đối với Ba càng, mỗi số phải có 3 chữ số.
           </p>
         )}
-        
+
         <div className="text-xs text-gray-500 text-center w-full pt-2 border-t mt-2">
           Lưu ý: Kết quả xổ số được cập nhật lúc 18:30 hàng ngày. Tiền thắng sẽ được cộng vào tài khoản sau khi có kết quả.
         </div>
