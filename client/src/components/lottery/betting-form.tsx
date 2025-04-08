@@ -39,12 +39,15 @@ const PRIZE_RATES = {
   sixth: 400,     // Giải sáu: 1 số trúng x 400đ
   seventh: 200,   // Giải bảy: 1 số trúng x 200đ
   // Các tỷ lệ cho lô
-  lo2so: 70,      // Lô 2 số: 1 số trúng x 70đ
+  lo2so: 80,      // Lô 2 số: 1 điểm trúng x 80 = 1.920.000đ (24.000đ = 1 điểm)
   lo3so: 700,     // Lô 3 số: 1 số trúng x 700đ
   xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
   xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
   xienbon: 100,   // Xiên 4: 1 bộ 4 trúng x 100đ
 };
+
+// Giá mặc định cho lô (24.000đ = 1 điểm)
+const DEFAULT_LO_AMOUNT = 24000;
 
 export default function BettingForm({
   betAmount,
@@ -81,7 +84,13 @@ export default function BettingForm({
       }
     }
     
-    setPotentialWinnings(betAmount * rate / 1000);
+    // Lô được tính theo số điểm (1 điểm = 24.000đ)
+    if (betMode === "lo") {
+      const numPoints = betAmount / DEFAULT_LO_AMOUNT;
+      setPotentialWinnings(numPoints * rate * 24000); // Tiền thắng = số điểm * tỷ lệ * 24.000đ
+    } else {
+      setPotentialWinnings(betAmount * rate / 1000);
+    }
   }, [betAmount, betMode, betType, xienCount]);
 
   // Cập nhật loại cược khi người dùng chọn chế độ
@@ -252,6 +261,7 @@ export default function BettingForm({
               placeholder="Nhập số (Enter để thêm)"
               className="flex-grow"
               onKeyDown={addTempNumber}
+              maxLength={betMode === "lo" && betType === "Lô 3 số" ? 3 : 2}
             />
             <Button variant="outline" onClick={onClearAll} title="Xóa tất cả">
               <Trash2 className="h-4 w-4" />
@@ -263,8 +273,24 @@ export default function BettingForm({
           
           <div className="mt-4 text-sm text-gray-500">
             {betMode === "de" && "Bạn có thể chọn nhiều số đề khác nhau"}
-            {betMode === "lo" && "Bạn có thể chọn nhiều số lô khác nhau"}
-            {betMode === "xien" && `Bạn cần chọn đúng ${xienCount} số cho xiên ${xienCount}`}
+            {betMode === "lo" && betType === "Lô 2 số" && (
+              <>
+                <p>Bạn có thể chọn nhiều số lô 2 chữ số khác nhau</p>
+                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {PRIZE_RATES.lo2so}x</p>
+              </>
+            )}
+            {betMode === "lo" && betType === "Lô 3 số" && (
+              <>
+                <p>Bạn có thể chọn nhiều số lô 3 chữ số khác nhau</p>
+                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {PRIZE_RATES.lo3so}x</p>
+              </>
+            )}
+            {betMode === "xien" && (
+              <>
+                <p>Bạn cần chọn đúng {xienCount} số cho xiên {xienCount}</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {betType === "Xiên 2" ? PRIZE_RATES.xienhai : betType === "Xiên 3" ? PRIZE_RATES.xienba : PRIZE_RATES.xienbon}x</p>
+              </>
+            )}
           </div>
         </div>
         

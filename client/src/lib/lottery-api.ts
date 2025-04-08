@@ -32,6 +32,16 @@ export async function fetchResults(): Promise<LotteryResult[]> {
   return response.json();
 }
 
+export async function fetchResultsByDate(date: string): Promise<LotteryResult> {
+  const response = await apiRequest("GET", `/api/lottery/results/date/${date}`);
+  return response.json();
+}
+
+export async function fetchAvailableDates(): Promise<string[]> {
+  const response = await apiRequest("GET", "/api/lottery/available-dates");
+  return response.json();
+}
+
 export async function placeBet(betData: BetRequest): Promise<any> {
   const response = await apiRequest("POST", "/api/bets", betData);
   return response.json();
@@ -62,39 +72,41 @@ export function checkWinner(number: string, results: LotteryResult): boolean {
   // Check if the last two digits match any of the results
   const twoDigits = number.slice(-2);
   
+  const resultsData = results.results;
+  
   // Check special prize (last 2 digits)
-  if (results.special.endsWith(twoDigits)) return true;
+  if (resultsData.special.endsWith(twoDigits)) return true;
   
   // Check first prize (last 2 digits)
-  if (results.first.endsWith(twoDigits)) return true;
+  if (resultsData.first.endsWith(twoDigits)) return true;
   
   // Check second prize (last 2 digits)
-  for (const result of results.second) {
+  for (const result of resultsData.second) {
     if (result.endsWith(twoDigits)) return true;
   }
   
   // Check third prize (last 2 digits)
-  for (const result of results.third) {
+  for (const result of resultsData.third) {
     if (result.endsWith(twoDigits)) return true;
   }
   
   // Check fourth prize
-  for (const result of results.fourth) {
+  for (const result of resultsData.fourth) {
     if (result === twoDigits) return true;
   }
   
   // Check fifth prize
-  for (const result of results.fifth) {
+  for (const result of resultsData.fifth) {
     if (result.endsWith(twoDigits)) return true;
   }
   
   // Check sixth prize
-  for (const result of results.sixth) {
+  for (const result of resultsData.sixth) {
     if (result === twoDigits) return true;
   }
   
   // Check seventh prize
-  for (const result of results.seventh) {
+  for (const result of resultsData.seventh) {
     if (result === twoDigits) return true;
   }
   

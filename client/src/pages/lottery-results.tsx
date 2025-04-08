@@ -2,20 +2,21 @@ import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import { useQuery } from "@tanstack/react-query";
-import { fetchLatestResults, checkWinner } from "@/lib/lottery-api";
-import { useState } from "react";
+import { fetchLatestResults, fetchResultsByDate, fetchAvailableDates, checkWinner } from "@/lib/lottery-api";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Trophy, SearchIcon, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
+import { Loader2, Trophy, SearchIcon, ChevronLeft, ChevronRight, CalendarIcon, RefreshCw } from "lucide-react";
 import ResultsTable from "@/components/lottery/results-table";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export default function LotteryResults() {
   const { user } = useAuth();
@@ -25,11 +26,46 @@ export default function LotteryResults() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [region, setRegion] = useState<string>("mienbac");
+  const [isAutoRefresh, setIsAutoRefresh] = useState(false);
+  const [queryDate, setQueryDate] = useState<string | null>(null);
   
-  const { data: lotteryResults, isLoading } = useQuery({
-    queryKey: ["/api/lottery/results/latest"],
-    queryFn: () => fetchLatestResults(),
+  // Fetch available dates
+  const { data: availableDates, isLoading: isLoadingDates } = useQuery({
+    queryKey: ["/api/lottery/available-dates"],
+    queryFn: () => fetchAvailableDates(),
   });
+  
+  // Fetch latest results by default, or results for a specific date if specified
+  const { data: lotteryResults, isLoading, refetch } = useQuery({
+    queryKey: [queryDate ? `/api/lottery/results/date/${queryDate}` : "/api/lottery/results/latest"],
+    queryFn: () => queryDate 
+      ? fetchResultsByDate(queryDate) 
+      : fetchLatestResults(),
+  });
+  
+  // Set up auto-refresh for latest results during drawing time
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (isAutoRefresh && !queryDate) {
+      // Check if we're in the drawing period
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const isDrawingTime = (hours === 18 && minutes >= 15) || (hours === 19 && minutes < 15);
+      
+      if (isDrawingTime) {
+        // Auto-refresh every 30 seconds during drawing time
+        intervalId = setInterval(() => {
+          refetch();
+        }, 30000);
+      }
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAutoRefresh, queryDate, refetch]);
 
   const handleCheckNumber = () => {
     if (!checkNumber.trim()) {
@@ -135,7 +171,12 @@ export default function LotteryResults() {
                       setSelectedDate(date as Date);
                       setShowDatePicker(false);
                     }}
-                    disabled={(date) => date > new Date()}
+                    disabled={(date) => {
+                      // Only enable dates that have available results
+                      if (!availableDates || date > new Date()) return true;
+                      const dateStr = format(date, "yyyy-MM-dd");
+                      return !availableDates.includes(dateStr);
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -159,8 +200,33 @@ export default function LotteryResults() {
             </div>
           </div>
           
-          <div className="flex-none md:self-end mt-auto">
-            <Button>
+          <div className="flex-none md:self-end mt-auto flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+              className={isAutoRefresh ? "bg-green-50 text-green-700 border-green-300" : ""}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isAutoRefresh ? "animate-spin" : ""}`} />
+              {isAutoRefresh ? "Tự Động Cập Nhật" : "Bật Tự Động Cập Nhật"}
+            </Button>
+            
+            <Button
+              onClick={() => {
+                if (selectedDate) {
+                  const dateStr = format(selectedDate, "yyyy-MM-dd");
+                  if (availableDates?.includes(dateStr)) {
+                    setQueryDate(dateStr);
+                  } else {
+                    setQueryDate(null);
+                    toast({
+                      title: "Không có dữ liệu",
+                      description: "Không có kết quả cho ngày đã chọn. Hiển thị kết quả mới nhất.",
+                      variant: "destructive",
+                    });
+                  }
+                }
+              }}
+            >
               <SearchIcon className="mr-2 h-4 w-4" />
               Xem Kết Quả
             </Button>
@@ -170,8 +236,25 @@ export default function LotteryResults() {
         {/* Latest Results Section */}
         <Card className="mb-8">
           <CardHeader className="bg-primary text-white">
-            <CardTitle className="flex items-center">
-              <Trophy className="mr-2 h-5 w-5" /> Kết Quả Xổ Số {region === "mienbac" ? "Miền Bắc" : (region === "mientrung" ? "Miền Trung" : "Miền Nam")}
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Trophy className="mr-2 h-5 w-5" /> 
+                Kết Quả Xổ Số {region === "mienbac" ? "Miền Bắc" : (region === "mientrung" ? "Miền Trung" : "Miền Nam")}
+              </div>
+              
+              {/* Show date badge and drawing state if applicable */}
+              <div className="flex items-center gap-2">
+                {queryDate && (
+                  <Badge variant="secondary" className="bg-white text-primary">
+                    Ngày: {format(parse(queryDate, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")}
+                  </Badge>
+                )}
+                {lotteryResults?.drawState === "drawing" && (
+                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 animate-pulse">
+                    Đang quay thưởng
+                  </Badge>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">

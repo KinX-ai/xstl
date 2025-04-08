@@ -19,6 +19,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch lottery results" });
     }
   });
+  
+  // Get lottery results by date
+  app.get("/api/lottery/results/date/:date", async (req, res) => {
+    try {
+      const date = req.params.date;
+      const results = await storage.getLotteryResults();
+      
+      // Find result by date
+      const result = results.find(r => {
+        // Convert to string and compare with the date parameter
+        const resultDate = typeof r.date === 'string' ? r.date : r.date.toISOString();
+        return resultDate.includes(date);
+      });
+      
+      if (result) {
+        res.json({...result, drawState: "complete"});
+      } else {
+        // If no result found for the specified date, return 404
+        res.status(404).json({ message: "No results found for the specified date" });
+      }
+    } catch (error) {
+      console.error("Error fetching lottery results by date:", error);
+      res.status(500).json({ message: "Failed to fetch lottery results" });
+    }
+  });
+  
+  // Get available dates with lottery results
+  app.get("/api/lottery/available-dates", async (req, res) => {
+    try {
+      const results = await storage.getLotteryResults();
+      // Extract dates from results
+      const dates = results.map(result => {
+        const resultDate = typeof result.date === 'string' ? result.date : result.date.toISOString();
+        return resultDate.split('T')[0];
+      });
+      res.json(dates);
+    } catch (error) {
+      console.error("Error fetching available dates:", error);
+      res.status(500).json({ message: "Failed to fetch available dates" });
+    }
+  });
 
   // Fetch the latest lottery results from xoso188.net API
   app.get("/api/lottery/results/latest", async (req, res) => {
