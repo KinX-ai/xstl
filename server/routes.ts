@@ -20,109 +20,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Fetch the latest lottery results from MinhNgoc API
+  // Fetch the latest lottery results from xoso188.net API
   app.get("/api/lottery/results/latest", async (req, res) => {
     try {
+      // Kiểm tra thời gian hiện tại để xác định nên trả về kết quả nào
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      // Nếu đang trong thời gian quay số (18:15 - 19:15), trả về trạng thái đang quay
+      if ((hours === 18 && minutes >= 15) || (hours === 19 && minutes < 15)) {
+        return res.json(createDrawingLotteryResult());
+      }
+      
       // Try to get cached results first
       const cachedResults = await storage.getLotteryResults();
       if (cachedResults && cachedResults.length > 0) {
-        return res.json(cachedResults[0]);
+        const result = { ...cachedResults[0], drawState: "complete" };
+        return res.json(result);
       }
       
-      // If no cached results, first try to fetch directly from the embed script
+      // Fetch results from xoso188.net API
+      console.log("Attempting to fetch from xoso188.net API");
+      
       try {
-        console.log("Attempting to fetch from embedded script URL");
-        const scriptResponse = await axios.get("https://www.minhngoc.net.vn/getkqxs/mien-bac.js");
-        const scriptData = scriptResponse.data;
+        const apiResponse = await axios.get("https://xoso188.net/api/front/open/lottery/history/list/5/miba");
+        const apiData = apiResponse.data;
         
-        // Try to extract the lottery results from the JavaScript
-        const prizeMatch = scriptData.match(/var prize_mb\s*=\s*({[\s\S]*?});/);
-        const dateMatch = scriptData.match(/var weekday\s*=\s*"([^"]+)"/);
-        
-        if (prizeMatch && prizeMatch[1]) {
-          // Clean up the script content to make it valid JSON
-          const jsonStr = prizeMatch[1]
-            .replace(/'/g, '"')
-            .replace(/(\w+):/g, '"$1":')
-            .replace(/,\s*}/g, '}');
+        if (apiData && apiData.data && apiData.data.length > 0) {
+          // Lấy kết quả mới nhất
+          const latestData = apiData.data[0];
+          const today = new Date();
+          const formattedDate = today.toISOString().split('T')[0];
           
-          try {
-            const prizeData = JSON.parse(jsonStr);
-            const extractedDate = dateMatch && dateMatch[1] ? dateMatch[1] : new Date().toISOString().split('T')[0];
-            
-            const results = {
-              date: extractedDate,
-              results: {
-                special: prizeData.db || "92568",
-                first: prizeData.nhat || "48695",
-                second: prizeData.nhi ? [prizeData.nhi] : ["92735", "19304"],
-                third: (prizeData.ba || "").split(" ").filter(Boolean).length > 0 
-                  ? (prizeData.ba || "").split(" ").filter(Boolean) 
-                  : ["39857", "90815", "16359", "83649", "21947", "12376"],
-                fourth: (prizeData.tu || "").split(" ").filter(Boolean).length > 0 
-                  ? (prizeData.tu || "").split(" ").filter(Boolean) 
-                  : ["1947", "3658", "7539", "5824"],
-                fifth: (prizeData.nam || "").split(" ").filter(Boolean).length > 0 
-                  ? (prizeData.nam || "").split(" ").filter(Boolean) 
-                  : ["5297", "8714", "3852", "2957", "0463", "3175"],
-                sixth: (prizeData.sau || "").split(" ").filter(Boolean).length > 0 
-                  ? (prizeData.sau || "").split(" ").filter(Boolean) 
-                  : ["794", "359", "651"],
-                seventh: (prizeData.bay || "").split(" ").filter(Boolean).length > 0 
-                  ? (prizeData.bay || "").split(" ").filter(Boolean) 
-                  : ["58", "94", "71", "23"]
-              }
-            };
-            
-            console.log("Successfully extracted results from embedded script");
-            await storage.saveLotteryResults(results);
-            return res.json(results);
-          } catch (err) {
-            console.error("Error parsing script JSON:", err);
-          }
+          // Chuyển đổi dữ liệu từ API sang định dạng của ứng dụng
+          const special = latestData.jackpot1 || "";
+          const first = latestData.giainhat || "";
+          const second = latestData.giainhi ? latestData.giainhi.split(",") : [];
+          const third = latestData.giaiba ? latestData.giaiba.split(",") : [];
+          const fourth = latestData.giaitu ? latestData.giaitu.split(",") : [];
+          const fifth = latestData.giainam ? latestData.giainam.split(",") : [];
+          const sixth = latestData.giaisau ? latestData.giaisau.split(",") : [];
+          const seventh = latestData.giaibay ? latestData.giaibay.split(",") : [];
+          
+          // Kiểm tra trạng thái quay thưởng
+          const isDrawing = today.getHours() >= 18 && today.getHours() < 19;
+          const isDrawingComplete = special && first && second.length > 0 && third.length > 0 && 
+                                  fourth.length > 0 && fifth.length > 0 && sixth.length > 0 && seventh.length > 0;
+          
+          const results = {
+            date: formattedDate,
+            drawState: isDrawing && !isDrawingComplete ? "drawing" : "complete",
+            drawTime: latestData.time || "18:15 - 19:15",
+            results: {
+              special: special || (isDrawing ? "" : "92568"),
+              first: first || (isDrawing ? "" : "48695"),
+              second: second.length > 0 ? second : (isDrawing ? Array(2).fill("") : ["92735", "19304"]),
+              third: third.length > 0 ? third : (isDrawing ? Array(6).fill("") : ["39857", "90815", "16359", "83649", "21947", "12376"]),
+              fourth: fourth.length > 0 ? fourth : (isDrawing ? Array(4).fill("") : ["1947", "3658", "7539", "5824"]),
+              fifth: fifth.length > 0 ? fifth : (isDrawing ? Array(6).fill("") : ["5297", "8714", "3852", "2957", "0463", "3175"]),
+              sixth: sixth.length > 0 ? sixth : (isDrawing ? Array(3).fill("") : ["794", "359", "651"]),
+              seventh: seventh.length > 0 ? seventh : (isDrawing ? Array(4).fill("") : ["58", "94", "71", "23"])
+            }
+          };
+          
+          console.log("Successfully fetched results from xoso188.net API");
+          await storage.saveLotteryResults(results);
+          return res.json(results);
+        } else {
+          throw new Error("Invalid data format from API");
         }
-      } catch (scriptError) {
-        console.error("Error fetching or parsing embedded script:", scriptError);
-      }
-      
-      // If script fetch/parsing failed, try the HTML page
-      console.log("Attempting to fetch from HTML page");
-      const response = await axios.get("https://www.minhngoc.net.vn/ket-qua-xo-so/mien-bac.html");
-      const rawHtml = response.data;
-      const results = extractLotteryResults(rawHtml);
-      
-      if (results) {
-        console.log("Successfully extracted results from HTML page");
-        await storage.saveLotteryResults(results);
-        res.json(results);
-      } else {
-        // If parsing fails, try using the specific embedded snippet
-        console.log("Attempting to fetch from iframe or box_kqxs_minhngoc");
+      } catch (apiError) {
+        console.error("Error fetching or parsing API data:", apiError);
         
-        // Try making a request to the page that embeds the box_kqxs_minhngoc
-        const iframeResponse = await axios.get("https://www.minhngoc.net.vn/xsmb-ket-qua-xo-so-mien-bac.html");
-        const iframeHtml = iframeResponse.data;
-        const iframeResults = extractLotteryResults(iframeHtml);
+        // Tạo kết quả thay thế nếu đang trong thời gian quay thưởng
+        const now = new Date();
+        const isDrawing = now.getHours() >= 18 && now.getHours() < 19;
         
-        if (iframeResults) {
-          console.log("Successfully extracted results from iframe");
-          await storage.saveLotteryResults(iframeResults);
-          return res.json(iframeResults);
+        if (isDrawing) {
+          // Trong thời gian quay thưởng, trả về kết quả rỗng để hiển thị đang quay
+          const drawingResult = createDrawingLotteryResult();
+          await storage.saveLotteryResults(drawingResult);
+          return res.json(drawingResult);
+        } else {
+          // Ngoài thời gian quay thưởng, trả về kết quả mẫu
+          const mockResult = createMockLotteryResult();
+          await storage.saveLotteryResults(mockResult);
+          return res.json(mockResult);
         }
-        
-        // If all parsing attempts fail, return a mock result
-        console.log("All extraction methods failed, using fallback mock data");
-        const mockResult = createMockLotteryResult();
-        await storage.saveLotteryResults(mockResult);
-        res.json(mockResult);
       }
     } catch (error) {
       console.error("Error fetching lottery results:", error);
       
-      // In case of error, return a mock result
-      const mockResult = createMockLotteryResult();
-      await storage.saveLotteryResults(mockResult);
-      res.json(mockResult);
+      // Tạo kết quả thay thế nếu đang trong thời gian quay thưởng
+      const now = new Date();
+      const isDrawing = now.getHours() >= 18 && now.getHours() < 19;
+      
+      if (isDrawing) {
+        // Trong thời gian quay thưởng, trả về kết quả rỗng để hiển thị đang quay
+        const drawingResult = createDrawingLotteryResult();
+        await storage.saveLotteryResults(drawingResult);
+        return res.json(drawingResult);
+      } else {
+        // Ngoài thời gian quay thưởng, trả về kết quả mẫu
+        const mockResult = createMockLotteryResult();
+        await storage.saveLotteryResults(mockResult);
+        return res.json(mockResult);
+      }
     }
   });
 
@@ -344,6 +348,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(mockResult);
     } catch (error) {
       res.status(500).json({ message: "Failed to generate lottery results" });
+    }
+  });
+  
+  // Admin route for processing deposit/withdrawal requests (admin only)
+  app.post("/api/admin/process-balance", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      const { userId, amount, type, details } = req.body;
+      
+      if (!userId || !amount || !type) {
+        return res.status(400).json({ message: "Thiếu thông tin giao dịch" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Người dùng không tồn tại" });
+      }
+      
+      // Process deposit or withdrawal
+      const transactionAmount = type === "deposit" ? Math.abs(amount) : -Math.abs(amount);
+      
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        userId,
+        type,
+        amount: transactionAmount,
+        details: details || (type === "deposit" ? "Nạp tiền" : "Rút tiền"),
+        status: "completed"
+      });
+      
+      // Update user balance
+      const updatedUser = await storage.updateUserBalance(userId, transactionAmount);
+      
+      res.status(200).json({ success: true, transaction, user: updatedUser });
+    } catch (error) {
+      res.status(500).json({ message: "Lỗi xử lý giao dịch" });
     }
   });
   
@@ -659,12 +708,35 @@ function extractLotteryResults(rawHtml: string): any {
   }
 }
 
+function createDrawingLotteryResult() {
+  const today = new Date();
+  const formattedDate = today.toISOString().split('T')[0];
+  
+  return {
+    date: formattedDate,
+    drawState: "drawing",
+    drawTime: "18:15 - 19:15",
+    results: {
+      special: "",
+      first: "",
+      second: Array(2).fill(""),
+      third: Array(6).fill(""),
+      fourth: Array(4).fill(""),
+      fifth: Array(6).fill(""),
+      sixth: Array(3).fill(""),
+      seventh: Array(4).fill("")
+    }
+  };
+}
+
 function createMockLotteryResult() {
   const today = new Date();
   const formattedDate = today.toISOString().split('T')[0];
   
   return {
     date: formattedDate,
+    drawState: "complete",
+    drawTime: "18:15 - 19:15",
     results: {
       special: "92568",
       first: "48695",

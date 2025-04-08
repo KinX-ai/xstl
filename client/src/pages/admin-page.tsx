@@ -64,6 +64,12 @@ export default function AdminPage() {
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [selectedTab, setSelectedTab] = useState("rates");
   
+  // States cho quản lý nạp/rút tiền
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [transactionAmount, setTransactionAmount] = useState<number>(0);
+  const [transactionType, setTransactionType] = useState<string>("deposit");
+  const [transactionDetails, setTransactionDetails] = useState<string>("");
+  
   // Kiểm tra xem người dùng có phải là admin không
   useEffect(() => {
     if (user && user.role !== "admin") {
@@ -190,6 +196,35 @@ export default function AdminPage() {
       toast({
         title: "Xử lý trả thưởng thất bại",
         description: error instanceof Error ? error.message : "Có lỗi xảy ra khi xử lý trả thưởng",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Mutation để xử lý nạp/rút tiền
+  const processBalanceMutation = useMutation({
+    mutationFn: async (data: { userId: number, amount: number, type: string, details?: string }) => {
+      const response = await apiRequest("POST", "/api/admin/process-balance", data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Giao dịch thành công",
+        description: transactionType === "deposit" 
+          ? `Đã nạp ${transactionAmount.toLocaleString()}đ vào tài khoản người dùng` 
+          : `Đã rút ${transactionAmount.toLocaleString()}đ từ tài khoản người dùng`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      
+      // Reset form
+      setTransactionAmount(0);
+      setTransactionDetails("");
+      setSelectedUserId(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Giao dịch thất bại",
+        description: error instanceof Error ? error.message : "Có lỗi xảy ra khi xử lý giao dịch",
         variant: "destructive",
       });
     }
@@ -486,7 +521,7 @@ export default function AdminPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {pendingBets.map((bet) => (
+                          {pendingBets.map((bet: any) => (
                             <TableRow key={bet.id}>
                               <TableCell>{bet.id}</TableCell>
                               <TableCell>{bet.username}</TableCell>
@@ -503,9 +538,11 @@ export default function AdminPage() {
                               <TableCell className="text-right font-mono font-medium">
                                 {bet.amount.toLocaleString()}đ
                               </TableCell>
-                              <TableCell>{new Date(bet.createdAt).toLocaleDateString('vi-VN')}</TableCell>
+                              <TableCell>{new Date(bet.createdAt).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                <Badge className="bg-yellow-100 text-yellow-800">Đang chờ</Badge>
+                                <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                                  Đang chờ
+                                </Badge>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -530,7 +567,7 @@ export default function AdminPage() {
                   <UsersIcon className="mr-2 h-5 w-5" /> Quản Lý Người Dùng
                 </CardTitle>
                 <CardDescription>
-                  Xem và quản lý tài khoản người dùng trong hệ thống
+                  Quản lý thông tin và tài khoản người dùng trong hệ thống
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -539,43 +576,148 @@ export default function AdminPage() {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                   </div>
                 ) : users && users.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ID</TableHead>
-                          <TableHead>Tên đăng nhập</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Điện thoại</TableHead>
-                          <TableHead className="text-right">Số dư</TableHead>
-                          <TableHead>Vai trò</TableHead>
-                          <TableHead>Ngày tạo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>{user.id}</TableCell>
-                            <TableCell className="font-medium">{user.username}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.phoneNumber || "-"}</TableCell>
-                            <TableCell className="text-right font-mono">
-                              {user.balance.toLocaleString()}đ
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={user.role === "admin" ? "destructive" : "secondary"}>
-                                {user.role === "admin" ? "Admin" : "Người dùng"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{new Date(user.createdAt).toLocaleDateString('vi-VN')}</TableCell>
+                  <div className="space-y-6">
+                    {/* Form nạp/rút tiền */}
+                    <Card className="border-dashed">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Nạp/Rút Tiền Cho Người Dùng</CardTitle>
+                        <CardDescription>
+                          Thực hiện giao dịch nạp hoặc rút tiền cho người dùng
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="user-select">Chọn người dùng</Label>
+                            <select 
+                              id="user-select"
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                              value={selectedUserId || ""}
+                              onChange={(e) => setSelectedUserId(parseInt(e.target.value))}
+                            >
+                              <option value="">Chọn người dùng...</option>
+                              {users.map((user: any) => (
+                                <option key={user.id} value={user.id}>
+                                  {user.username} (ID: {user.id}) - Số dư: {user.balance?.toLocaleString()}đ
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="grid gap-2">
+                            <Label htmlFor="transaction-type">Loại giao dịch</Label>
+                            <select 
+                              id="transaction-type"
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                              value={transactionType}
+                              onChange={(e) => setTransactionType(e.target.value)}
+                            >
+                              <option value="deposit">Nạp tiền (Thêm vào số dư)</option>
+                              <option value="withdraw">Rút tiền (Trừ vào số dư)</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="amount">Số tiền</Label>
+                            <Input
+                              id="amount"
+                              type="number"
+                              placeholder="50000"
+                              min="0"
+                              value={transactionAmount || ""}
+                              onChange={(e) => setTransactionAmount(parseFloat(e.target.value))}
+                            />
+                          </div>
+                          
+                          <div className="grid gap-2">
+                            <Label htmlFor="details">Ghi chú</Label>
+                            <Input
+                              id="details"
+                              placeholder="Chi tiết giao dịch..."
+                              value={transactionDetails}
+                              onChange={(e) => setTransactionDetails(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          className="w-full mt-2"
+                          onClick={() => {
+                            if (!selectedUserId) {
+                              toast({ title: "Lỗi", description: "Vui lòng chọn người dùng", variant: "destructive" });
+                              return;
+                            }
+                            if (!transactionAmount || transactionAmount <= 0) {
+                              toast({ title: "Lỗi", description: "Vui lòng nhập số tiền hợp lệ", variant: "destructive" });
+                              return;
+                            }
+                            processBalanceMutation.mutate({
+                              userId: selectedUserId,
+                              amount: transactionAmount,
+                              type: transactionType,
+                              details: transactionDetails || undefined
+                            });
+                          }}
+                          disabled={processBalanceMutation.isPending || !selectedUserId}
+                        >
+                          {processBalanceMutation.isPending ? (
+                            <>
+                              <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...
+                            </>
+                          ) : (
+                            <>
+                              <DollarSignIcon className="mr-2 h-4 w-4" /> 
+                              {transactionType === "deposit" ? "Nạp Tiền" : "Rút Tiền"}
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Danh sách người dùng */}
+                    <div className="overflow-x-auto">
+                      <h3 className="text-lg font-medium mb-4">Danh Sách Người Dùng</h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ID</TableHead>
+                            <TableHead>Tên người dùng</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Vai trò</TableHead>
+                            <TableHead className="text-right">Số dư</TableHead>
+                            <TableHead>Trạng thái</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {users.map((user: any) => (
+                            <TableRow key={user.id}>
+                              <TableCell>{user.id}</TableCell>
+                              <TableCell>{user.username}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Badge variant={user.role === "admin" ? "destructive" : "outline"}>
+                                  {user.role === "admin" ? "Admin" : "Người dùng"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-mono font-medium">
+                                {user.balance?.toLocaleString()}đ
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary">
+                                  Đang hoạt động
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">Không có người dùng nào.</p>
+                    <p className="text-gray-500">Không có người dùng nào trong hệ thống.</p>
                   </div>
                 )}
               </CardContent>

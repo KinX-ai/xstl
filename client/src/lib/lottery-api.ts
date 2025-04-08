@@ -2,6 +2,8 @@ import { apiRequest } from "./queryClient";
 
 export interface LotteryResult {
   date: string;
+  drawState?: "drawing" | "complete";
+  drawTime?: string;
   results: {
     special: string;
     first: string;
