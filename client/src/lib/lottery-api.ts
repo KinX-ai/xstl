@@ -1,5 +1,18 @@
 import { apiRequest } from "./queryClient";
 
+export const PRIZE_RATES = {
+  special: 80,   // Đề đặc biệt
+  first: 70,     // Đề đầu, đuôi
+  lo2so: 80,     // Lô 2 số
+  lo3so: 800,    // Lô 3 số
+  bacanh: 880,   // 3 càng
+  xienhai: 15,   // Xiên 2
+  xienba: 50,    // Xiên 3
+  xienbon: 180   // Xiên 4
+};
+
+export const DEFAULT_LO_AMOUNT = 24000; // 1 điểm lô = 24.000 VNĐ
+
 export interface LotteryResult {
   date: string;
   drawState?: "drawing" | "complete";

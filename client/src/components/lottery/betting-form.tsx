@@ -13,6 +13,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { PRIZE_RATES as PrizeRates, DEFAULT_LO_AMOUNT as LoAmount } from "@/lib/lottery-api";
 
 interface BettingFormProps {
   betAmount: number;
@@ -28,26 +29,7 @@ interface BettingFormProps {
   onRandomSelect?: () => void;
 }
 
-// Định nghĩa tỷ lệ trả thưởng như ở trang kết quả
-const PRIZE_RATES = {
-  special: 80000, // Đặc biệt: 1 số trúng x 80.000đ
-  first: 25000,   // Giải nhất: 1 số trúng x 25.000đ
-  second: 10000,  // Giải nhì: 1 số trúng x 10.000đ
-  third: 5000,    // Giải ba: 1 số trúng x 5.000đ
-  fourth: 1200,   // Giải tư: 1 số trúng x 1.200đ
-  fifth: 600,     // Giải năm: 1 số trúng x 600đ
-  sixth: 400,     // Giải sáu: 1 số trúng x 400đ
-  seventh: 200,   // Giải bảy: 1 số trúng x 200đ
-  // Các tỷ lệ cho lô
-  lo2so: 80,      // Lô 2 số: 1 điểm trúng x 80 = 1.920.000đ (24.000đ = 1 điểm)
-  lo3so: 700,     // Lô 3 số: 1 số trúng x 700đ
-  xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
-  xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
-  xienbon: 100,   // Xiên 4: 1 bộ 4 trúng x 100đ
-};
-
-// Giá mặc định cho lô (24.000đ = 1 điểm)
-const DEFAULT_LO_AMOUNT = 24000;
+// Đã import PRIZE_RATES và DEFAULT_LO_AMOUNT từ lottery-api.ts
 
 export default function BettingForm({
   betAmount,
@@ -73,24 +55,29 @@ export default function BettingForm({
     // Tính tiền thắng dự kiến dựa trên loại cược và số tiền đặt
     let rate = 0;
     if (betMode === "de") {
-      rate = betType === "Đề đặc biệt" ? PRIZE_RATES.special : PRIZE_RATES.first;
+      rate = betType === "Đề đặc biệt" ? PrizeRates.special : PrizeRates.first;
     } else if (betMode === "lo") {
-      rate = betType === "Lô 3 số" ? PRIZE_RATES.lo3so : PRIZE_RATES.lo2so;
+      rate = betType === "Lô 3 số" ? PrizeRates.lo3so : PrizeRates.lo2so;
     } else if (betMode === "xien") {
       switch (xienCount) {
-        case 2: rate = PRIZE_RATES.xienhai; break;
-        case 3: rate = PRIZE_RATES.xienba; break;
-        case 4: rate = PRIZE_RATES.xienbon; break;
+        case 2: rate = PrizeRates.xienhai; break;
+        case 3: rate = PrizeRates.xienba; break;
+        case 4: rate = PrizeRates.xienbon; break;
       }
     }
     
     // Lô được tính theo số điểm (1 điểm = 24.000đ)
     if (betMode === "lo") {
-      const numPoints = betAmount / DEFAULT_LO_AMOUNT;
-      // Số lượng số đã chọn * số điểm * tỷ lệ * 24.000đ
+      const numPoints = betAmount / LoAmount;
+      // Đối với lô, mỗi số được tính riêng
       const numSelectedNumbers = selectedNumbers.length || 1;
-      setPotentialWinnings(numSelectedNumbers * numPoints * rate * 24000);
+      setPotentialWinnings(numPoints * rate * LoAmount); // Tiền thắng của 1 số
+    } else if (betMode === "de") {
+      // Đối với đề, tổng tiền cược sẽ là số lượng số * số tiền đặt
+      const numSelectedNumbers = selectedNumbers.length || 1;
+      setPotentialWinnings((betAmount / numSelectedNumbers) * rate / 1000); // Tiền thắng của 1 số
     } else {
+      // Xiên
       setPotentialWinnings(betAmount * rate / 1000);
     }
   }, [betAmount, betMode, betType, xienCount, selectedNumbers.length]);
@@ -345,10 +332,19 @@ export default function BettingForm({
             <span className="font-mono font-bold text-lg ml-2">
               {betMode === "lo" ? (
                 <>
-                  {betAmount.toLocaleString()} VNĐ 
+                  {(betAmount * selectedNumbers.length).toLocaleString()} VNĐ 
                   {selectedNumbers.length > 1 && (
                     <span className="text-sm text-gray-500 ml-1">
-                      (x{selectedNumbers.length} số = {(betAmount * selectedNumbers.length).toLocaleString()} VNĐ)
+                      ({(betAmount / DEFAULT_LO_AMOUNT).toFixed(2)} điểm x {selectedNumbers.length} số)
+                    </span>
+                  )}
+                </>
+              ) : betMode === "de" ? (
+                <>
+                  {(betAmount * selectedNumbers.length).toLocaleString()} VNĐ
+                  {selectedNumbers.length > 1 && (
+                    <span className="text-sm text-gray-500 ml-1">
+                      ({betAmount.toLocaleString()} VNĐ x {selectedNumbers.length} số)
                     </span>
                   )}
                 </>

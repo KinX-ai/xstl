@@ -217,16 +217,17 @@ export default function ResultsTable({ results }: ResultsTableProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
       {/* Bảng kết quả chính */}
-      <div className="md:col-span-1 border rounded shadow-sm overflow-hidden">
-        <div className="bg-blue-100 p-3 text-center font-bold">
-          {dayOfWeek} - {formattedDate}
+      <div className="md:col-span-6 lg:col-span-6 border rounded shadow-sm overflow-hidden">
+        <div className="bg-blue-100 p-2 text-center font-bold">
+          <div className="text-xl text-blue-800">KẾT QUẢ MỚI NHẤT</div>
+          <div>{dayOfWeek} - {formattedDate}</div>
         </div>
         <table className="w-full border-collapse text-center">
           <tbody>
             <tr>
-              <td className="border p-2 font-bold bg-blue-50 w-20">ĐB</td>
+              <td className="border p-2 font-bold bg-blue-50 w-14">ĐB</td>
               <td className="border p-2 text-center text-red-600 font-bold text-xl" colSpan={3}>
                 {renderPrizeCell(results.results.special, 'special')}
               </td>
@@ -395,16 +396,16 @@ export default function ResultsTable({ results }: ResultsTableProps) {
       
       {/* Bảng đầu */}
       {!isDrawing && (
-        <div className="md:col-span-1 border rounded shadow-sm overflow-hidden">
-          <div className="bg-orange-100 p-3 text-center font-bold">
+        <div className="md:col-span-3 lg:col-span-3 border rounded shadow-sm overflow-hidden">
+          <div className="bg-orange-100 p-2 text-center font-bold">
             Đầu
           </div>
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse text-sm">
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="border p-2 font-bold bg-orange-50 w-10 text-center">{i}</td>
-                  <td className="border p-2">
+                  <td className="border p-1 font-bold bg-orange-50 w-8 text-center">{i}</td>
+                  <td className="border p-1">
                     {getNumbersForHead(i).join(", ")}
                   </td>
                 </tr>
@@ -416,16 +417,16 @@ export default function ResultsTable({ results }: ResultsTableProps) {
       
       {/* Bảng đuôi */}
       {!isDrawing && (
-        <div className="md:col-span-1 border rounded shadow-sm overflow-hidden">
-          <div className="bg-purple-100 p-3 text-center font-bold">
+        <div className="md:col-span-3 lg:col-span-3 border rounded shadow-sm overflow-hidden">
+          <div className="bg-purple-100 p-2 text-center font-bold">
             Đuôi
           </div>
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse text-sm">
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="border p-2 font-bold bg-purple-50 w-10 text-center">{i}</td>
-                  <td className="border p-2">
+                  <td className="border p-1 font-bold bg-purple-50 w-8 text-center">{i}</td>
+                  <td className="border p-1">
                     {getNumbersForTail(i).join(", ")}
                   </td>
                 </tr>
