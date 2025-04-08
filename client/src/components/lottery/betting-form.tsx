@@ -116,14 +116,21 @@ export default function BettingForm({
 
   // Cập nhật loại cược khi người dùng chọn chế độ
   useEffect(() => {
-    if (actualBetMode === "de") {
-      setBetType("Đề đặc biệt");
-    } else if (actualBetMode === "lo") {
-      setBetType("Lô 2 số");
-    } else if (actualBetMode === "xien") {
-      setBetType(`Xiên ${xienCount}`);
-    } else if (actualBetMode === "bacanh") {
-      setBetType("Ba càng");
+    switch (actualBetMode) {
+      case "de":
+        setBetType("de");
+        break;
+      case "lo":
+        setBetType("lo2so");
+        break;
+      case "xien":
+        setBetType(`xien${xienCount}`);
+        break;
+      case "bacanh":
+        setBetType("bacanh");
+        break;
+      default:
+        setBetType("de");
     }
   }, [actualBetMode, xienCount, setBetType]);
 
