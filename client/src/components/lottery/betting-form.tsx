@@ -64,14 +64,16 @@ export default function BettingForm({
   const [tempNumbers, setTempNumbers] = useState<string[]>([]);
   const [potentialWinnings, setPotentialWinnings] = useState<number>(0);
 
-  // Lấy tỷ lệ thắng từ server
-  const { data: serverPrizeRates } = useQuery({
+  // Fetch prize rates from admin config
+  const { data: prizeRates } = useQuery({
     queryKey: ["/api/admin/prize-rates"],
-    queryFn: fetchPrizeRates,
+    queryFn: async () => {
+      const response = await fetch("/api/admin/prize-rates");
+      if (!response.ok) throw new Error("Failed to fetch prize rates");
+      return response.json();
+    }
   });
 
-  // Sử dụng server rates nếu có, ngược lại dùng default
-  const prizeRates = serverPrizeRates || PRIZE_RATES;
 
   const predefinedAmounts = [10000, 20000, 50000, 100000, 200000];
 
@@ -79,17 +81,17 @@ export default function BettingForm({
     // Tính tiền thắng dự kiến dựa trên loại cược và số tiền đặt
     let rate = 0;
     if (actualBetMode === "de") {
-      rate = betType === "Đề đặc biệt" ? prizeRates.special : prizeRates.first;
+      rate = betType === "Đề đặc biệt" ? prizeRates?.special : prizeRates?.first;
     } else if (actualBetMode === "lo") {
-      rate = betType === "Lô 3 số" ? prizeRates.lo3so : prizeRates.lo2so;
+      rate = betType === "Lô 3 số" ? prizeRates?.lo3so : prizeRates?.lo2so;
     } else if (actualBetMode === "xien") {
       switch (xienCount) {
-        case 2: rate = prizeRates.xienhai; break;
-        case 3: rate = prizeRates.xienba; break;
-        case 4: rate = prizeRates.xienbon; break;
+        case 2: rate = prizeRates?.xienhai; break;
+        case 3: rate = prizeRates?.xienba; break;
+        case 4: rate = prizeRates?.xienbon; break;
       }
     } else if (actualBetMode === "bacanh") {
-      rate = prizeRates.bacanh;
+      rate = prizeRates?.bacanh;
     }
 
     // Lô được tính theo số điểm (1 điểm = 24.000đ)
@@ -97,18 +99,18 @@ export default function BettingForm({
       const numPoints = betAmount / DEFAULT_LO_AMOUNT;
       // Đối với lô, mỗi số được tính riêng
       const numSelectedNumbers = selectedNumbers.length || 1;
-      setPotentialWinnings(numPoints * rate * DEFAULT_LO_AMOUNT); // Tiền thắng của 1 số
+      setPotentialWinnings(numPoints * (rate || 0) * DEFAULT_LO_AMOUNT); // Tiền thắng của 1 số
     } else if (actualBetMode === "de") {
       // Đối với đề, tổng tiền cược sẽ là số lượng số * số tiền đặt
       const numSelectedNumbers = selectedNumbers.length || 1;
-      setPotentialWinnings((betAmount / numSelectedNumbers) * rate); // Tiền thắng của 1 số
+      setPotentialWinnings((betAmount / numSelectedNumbers) * (rate || 0)); // Tiền thắng của 1 số
     } else if (actualBetMode === "bacanh") {
       // Ba càng tính giống như đề
       const numSelectedNumbers = selectedNumbers.length || 1;
-      setPotentialWinnings((betAmount / numSelectedNumbers) * rate);
+      setPotentialWinnings((betAmount / numSelectedNumbers) * (rate || 0));
     } else {
       // Xiên
-      setPotentialWinnings(betAmount * rate);
+      setPotentialWinnings(betAmount * (rate || 0));
     }
   }, [betAmount, actualBetMode, betType, xienCount, selectedNumbers.length, prizeRates]);
 
@@ -162,9 +164,9 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại đề" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Đề đặc biệt">Đề đặc biệt (x{prizeRates.special})</SelectItem>
-              <SelectItem value="Đề đầu">Đề đầu (x{prizeRates.first})</SelectItem>
-              <SelectItem value="Đề đuôi">Đề đuôi (x{prizeRates.first})</SelectItem>
+              <SelectItem value="Đề đặc biệt">Đề đặc biệt (x{prizeRates?.special || 80})</SelectItem>
+              <SelectItem value="Đề đầu">Đề đầu (x{prizeRates?.first || 80})</SelectItem>
+              <SelectItem value="Đề đuôi">Đề đuôi (x{prizeRates?.first || 80})</SelectItem>
             </SelectContent>
           </Select>
 
@@ -184,8 +186,8 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại lô" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Lô 2 số">Lô 2 số (x{prizeRates.lo2so})</SelectItem>
-              <SelectItem value="Lô 3 số">Lô 3 số (x{prizeRates.lo3so})</SelectItem>
+              <SelectItem value="Lô 2 số">Lô 2 số (x{prizeRates?.lo2so || 70})</SelectItem>
+              <SelectItem value="Lô 3 số">Lô 3 số (x{prizeRates?.lo3so || 70})</SelectItem>
             </SelectContent>
           </Select>
 
@@ -207,7 +209,7 @@ export default function BettingForm({
                 variant={xienCount === count ? "default" : "outline"}
                 onClick={() => handleXienCountChange(count)}
               >
-                Xiên {count} (x{count === 2 ? prizeRates.xienhai : count === 3 ? prizeRates.xienba : prizeRates.xienbon})
+                Xiên {count} (x{count === 2 ? prizeRates?.xienhai || 15 : count === 3 ? prizeRates?.xienba || 40 : prizeRates?.xienbon || 100})
               </Button>
             ))}
           </div>
@@ -226,8 +228,8 @@ export default function BettingForm({
 
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
-            <p>• <strong>Tỷ lệ trả thưởng:</strong> {prizeRates.bacanh}x mỗi số trúng</p>
-            <p className="mt-1 text-xs text-muted-foreground">Ví dụ: Đặt 10.000đ và trúng sẽ được {(10000 * prizeRates.bacanh).toLocaleString()}đ</p>
+            <p>• <strong>Tỷ lệ trả thưởng:</strong> {prizeRates?.bacanh || 880}x mỗi số trúng</p>
+            <p className="mt-1 text-xs text-muted-foreground">Ví dụ: Đặt 10.000đ và trúng sẽ được {(10000 * (prizeRates?.bacanh || 880)).toLocaleString()}đ</p>
           </div>
         </div>
       );
@@ -268,7 +270,7 @@ export default function BettingForm({
 
               <div className="mt-2 text-sm text-gray-600">
                 <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates?.bacanh || 880}x</p>
               </div>
             </div>
           </TabsContent>
@@ -321,25 +323,25 @@ export default function BettingForm({
             {actualBetMode === "lo" && betType === "Lô 2 số" && (
               <>
                 <p>Bạn có thể chọn nhiều số lô 2 chữ số khác nhau</p>
-                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {prizeRates.lo2so}x</p>
+                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {prizeRates?.lo2so || 70}x</p>
               </>
             )}
             {actualBetMode === "lo" && betType === "Lô 3 số" && (
               <>
                 <p>Bạn có thể chọn nhiều số lô 3 chữ số khác nhau</p>
-                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {prizeRates.lo3so}x</p>
+                <p className="mt-1 text-xs">1 điểm = {DEFAULT_LO_AMOUNT.toLocaleString()} VNĐ, trả thưởng {prizeRates?.lo3so || 70}x</p>
               </>
             )}
             {actualBetMode === "xien" && (
               <>
                 <p>Bạn cần chọn đúng {xienCount} số cho xiên {xienCount}</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {betType === "Xiên 2" ? prizeRates.xienhai : betType === "Xiên 3" ? prizeRates.xienba : prizeRates.xienbon}x</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {betType === "Xiên 2" ? prizeRates?.xienhai || 15 : betType === "Xiên 3" ? prizeRates?.xienba || 40 : prizeRates?.xienbon || 100}x</p>
               </>
             )}
             {actualBetMode === "bacanh" && (
               <>
                 <p>Bạn cần chọn số có 3 chữ số cho Ba càng</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates.bacanh}x</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates?.bacanh || 880}x</p>
               </>
             )}
           </div>
