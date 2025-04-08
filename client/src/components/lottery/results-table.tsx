@@ -122,19 +122,19 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                   <table className="w-full border-collapse border">
                     <thead>
                       <tr className="bg-yellow-500 text-white">
-                        <th colSpan={2} className="text-center py-2">
+                        <th colSpan={2} className="text-center py-2 text-xl font-bold">
                           KQXS MIỀN BẮC
                         </th>
                       </tr>
                       <tr className="bg-gray-100">
                         <th className="border p-2 text-left w-1/4">{getDayOfWeek(results.date)}</th>
-                        <th className="border p-2 text-left">Ngày: {formatDateDisplay(results.date)}</th>
+                        <th className="border p-2 text-right">Ngày: {formatDateDisplay(results.date)}</th>
                       </tr>
                     </thead>
                     <tbody className="font-mono">
                       <tr>
                         <td className="border p-2 font-medium">Giải ĐB</td>
-                        <td className="border p-2 text-center font-bold text-blue-800">{results.results.special}</td>
+                        <td className="border p-2 text-center font-bold text-blue-800 text-xl">{results.results.special}</td>
                       </tr>
                       <tr>
                         <td className="border p-2 font-medium">Giải nhất</td>

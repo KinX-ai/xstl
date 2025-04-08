@@ -11,6 +11,7 @@ import TransactionHistory from "@/pages/transaction-history";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import LandingPage from "@/pages/landing-page";
+import HowToPlay from "@/pages/how-to-play";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import "./index.css";
@@ -21,6 +22,7 @@ function Router() {
       {/* Public routes */}
       <Route path="/" component={LandingPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/guide" component={HowToPlay} />
       
       {/* Protected routes */}
       <ProtectedRoute path="/dashboard" component={HomePage} />

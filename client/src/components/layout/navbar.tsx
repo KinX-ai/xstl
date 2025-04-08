@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { Trophy, UserIcon, CircleDollarSign, LogOut, Menu } from "lucide-react";
+import { Trophy, UserIcon, CircleDollarSign, LogOut, Menu, HelpCircle } from "lucide-react";
 import { Link } from "wouter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
@@ -36,8 +36,11 @@ export default function Navbar() {
             <Link href="/results">
               <span className="py-2 hover:text-secondary transition-colors cursor-pointer">Kết Quả Xổ Số</span>
             </Link>
-            <Link href="/play">
+            <Link href="/play-lottery">
               <span className="py-2 hover:text-secondary transition-colors cursor-pointer">Chơi Ngay</span>
+            </Link>
+            <Link href="/guide">
+              <span className="py-2 hover:text-secondary transition-colors cursor-pointer">Hướng Dẫn Chơi</span>
             </Link>
             <Link href="/history">
               <span className="py-2 hover:text-secondary transition-colors cursor-pointer">Lịch Sử</span>
@@ -116,8 +119,11 @@ export default function Navbar() {
             <Link href="/results">
               <span className="block py-2 hover:bg-primary-dark px-3 rounded cursor-pointer">Kết Quả Xổ Số</span>
             </Link>
-            <Link href="/play">
+            <Link href="/play-lottery">
               <span className="block py-2 hover:bg-primary-dark px-3 rounded cursor-pointer">Chơi Ngay</span>
+            </Link>
+            <Link href="/guide">
+              <span className="block py-2 hover:bg-primary-dark px-3 rounded cursor-pointer">Hướng Dẫn Chơi</span>
             </Link>
             <Link href="/history">
               <span className="block py-2 hover:bg-primary-dark px-3 rounded cursor-pointer">Lịch Sử</span>

@@ -6,16 +6,25 @@ import { fetchLatestResults, checkWinner } from "@/lib/lottery-api";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Trophy, SearchIcon } from "lucide-react";
+import { Loader2, Trophy, SearchIcon, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
 import ResultsTable from "@/components/lottery/results-table";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 export default function LotteryResults() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [checkNumber, setCheckNumber] = useState("");
   const [isChecking, setIsChecking] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [region, setRegion] = useState<string>("mienbac");
   
   const { data: lotteryResults, isLoading } = useQuery({
     queryKey: ["/api/lottery/results/latest"],
@@ -76,11 +85,93 @@ export default function LotteryResults() {
           <Trophy className="mr-3 text-primary h-8 w-8" /> Kết Quả Xổ Số Miền Bắc
         </h1>
 
+        {/* Date Selection and Filter */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">Chọn đài:</label>
+            <Select value={region} onValueChange={setRegion}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Chọn miền" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mienbac">Miền Bắc</SelectItem>
+                <SelectItem value="mientrung">Miền Trung</SelectItem>
+                <SelectItem value="miennam">Miền Nam</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">Ngày:</label>
+            <div className="flex">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-r-none"
+                onClick={() => {
+                  const newDate = new Date(selectedDate);
+                  newDate.setDate(selectedDate.getDate() - 1);
+                  setSelectedDate(newDate);
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="rounded-none flex-1 justify-start font-normal border-x-0"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(selectedDate, "dd/MM/yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      setSelectedDate(date as Date);
+                      setShowDatePicker(false);
+                    }}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-l-none"
+                disabled={selectedDate >= new Date()}
+                onClick={() => {
+                  const newDate = new Date(selectedDate);
+                  newDate.setDate(selectedDate.getDate() + 1);
+                  if (newDate <= new Date()) {
+                    setSelectedDate(newDate);
+                  }
+                }}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex-none md:self-end mt-auto">
+            <Button>
+              <SearchIcon className="mr-2 h-4 w-4" />
+              Xem Kết Quả
+            </Button>
+          </div>
+        </div>
+
         {/* Latest Results Section */}
         <Card className="mb-8">
           <CardHeader className="bg-primary text-white">
             <CardTitle className="flex items-center">
-              <Trophy className="mr-2 h-5 w-5" /> Kết Quả Xổ Số Mới Nhất
+              <Trophy className="mr-2 h-5 w-5" /> Kết Quả Xổ Số {region === "mienbac" ? "Miền Bắc" : (region === "mientrung" ? "Miền Trung" : "Miền Nam")}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
