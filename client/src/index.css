@@ -11,3 +11,27 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Fix button hover styles */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+  
+  .btn-outline {
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+  
+  /* Fix for admin panel buttons */
+  .admin-panel button[type="button"] {
+    @apply bg-primary hover:bg-primary/90 text-white;
+  }
+  
+  .admin-panel button[type="button"].btn-outline {
+    @apply bg-transparent border border-primary text-primary hover:bg-primary/10;
+  }
+}

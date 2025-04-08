@@ -65,7 +65,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const userToInsert = {
       ...insertUser,
-      balance: 500000, // Start with 500,000 VND
+      balance: 0, // Start with 0 VND by default
       role: insertUser.email === "admin@example.com" ? "admin" : "user",
     };
 

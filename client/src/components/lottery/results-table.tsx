@@ -254,9 +254,9 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                     </td>
                   ))}
                   {/* Fill empty cells if needed */}
-                  {Array.from({ length: 2 - results.results.second.slice(0, 2).length }).map((_, i) => (
-                    <td key={i + results.results.second.length} className="border p-2" colSpan={2 - results.results.second.slice(0, 2).length}></td>
-                  ))}
+                  {results.results.second.length < 2 && (
+                    <td colSpan={2 - results.results.second.length} className="border p-2"></td>
+                  )}
                 </>
               )}
             </tr>
@@ -274,11 +274,15 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                       {num}
                     </td>
                   ))}
+                  {/* Fill empty cells if needed */}
+                  {results.results.third.length < 3 && (
+                    <td colSpan={3 - results.results.third.slice(0, 3).length} className="border p-2"></td>
+                  )}
                 </>
               )}
             </tr>
             
-            {!isDrawing && results.results.third.length > 3 && (
+            {!isDrawing && (
               <tr>
                 <td className="border p-2 text-center">
                   {results.results.third[3] || ""}
@@ -300,11 +304,15 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                 </td>
               ) : (
                 <>
-                  {results.results.fourth.slice(0, 4).map((num, i) => (
-                    <td key={i} className={`border p-2 text-center ${i === 3 ? "border-r-0" : ""}`}>
-                      {num}
-                    </td>
-                  ))}
+                  <td className="border p-2 text-center">
+                    {results.results.fourth[0] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.fourth[1] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.fourth[2] || ""}
+                  </td>
                 </>
               )}
             </tr>
@@ -317,16 +325,20 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                 </td>
               ) : (
                 <>
-                  {results.results.fifth.slice(0, 3).map((num, i) => (
-                    <td key={i} className="border p-2 text-center">
-                      {num}
-                    </td>
-                  ))}
+                  <td className="border p-2 text-center">
+                    {results.results.fifth[0] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.fifth[1] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.fifth[2] || ""}
+                  </td>
                 </>
               )}
             </tr>
             
-            {!isDrawing && results.results.fifth.length > 3 && (
+            {!isDrawing && (
               <tr>
                 <td className="border p-2 text-center">
                   {results.results.fifth[3] || ""}
@@ -348,15 +360,15 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                 </td>
               ) : (
                 <>
-                  {results.results.sixth.map((num, i) => (
-                    <td key={i} className="border p-2 text-center">
-                      {num}
-                    </td>
-                  ))}
-                  {/* Fill empty cells if needed */}
-                  {Array.from({ length: 3 - results.results.sixth.length }).map((_, i) => (
-                    <td key={i + results.results.sixth.length} className="border p-2"></td>
-                  ))}
+                  <td className="border p-2 text-center">
+                    {results.results.sixth[0] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.sixth[1] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.sixth[2] || ""}
+                  </td>
                 </>
               )}
             </tr>
@@ -369,15 +381,15 @@ export default function ResultsTable({ results }: ResultsTableProps) {
                 </td>
               ) : (
                 <>
-                  {results.results.seventh.map((num, i) => (
-                    <td key={i} className="border p-2 text-center">
-                      {num}
-                    </td>
-                  ))}
-                  {/* Fill empty cells if needed */}
-                  {Array.from({ length: 4 - results.results.seventh.length }).map((_, i) => (
-                    <td key={i + results.results.seventh.length} className={`border p-2 ${i + results.results.seventh.length >= 3 ? "border-r-0" : ""}`}></td>
-                  ))}
+                  <td className="border p-2 text-center">
+                    {results.results.seventh[0] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.seventh[1] || ""}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {results.results.seventh[2] || ""}
+                  </td>
                 </>
               )}
             </tr>
@@ -404,9 +416,9 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="border p-1 font-bold bg-orange-50 w-6 text-center text-lg">{i}</td>
+                  <td className="border p-1 font-bold bg-orange-50 w-10 text-center text-lg">{i}</td>
                   <td className="border p-1 text-lg">
-                    {getNumbersForHead(i).join(", ")}
+                    {getNumbersForHead(i).join(", ") || "-"}
                   </td>
                 </tr>
               ))}
@@ -425,9 +437,9 @@ export default function ResultsTable({ results }: ResultsTableProps) {
             <tbody>
               {Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i}>
-                  <td className="border p-1 font-bold bg-purple-50 w-6 text-center text-lg">{i}</td>
+                  <td className="border p-1 font-bold bg-purple-50 w-10 text-center text-lg">{i}</td>
                   <td className="border p-1 text-lg">
-                    {getNumbersForTail(i).join(", ")}
+                    {getNumbersForTail(i).join(", ") || "-"}
                   </td>
                 </tr>
               ))}

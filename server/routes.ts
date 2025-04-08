@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
-  // Update user balance
+  // Request a deposit or withdrawal (user can only request, admin must approve)
   app.post("/api/transactions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
@@ -186,15 +186,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertTransactionSchema.parse(req.body);
       const user = req.user as Express.User;
       
+      // For deposits and withdrawals, set status to 'pending' for admin approval
+      let status = "pending";
+      
+      // Create transaction with pending status
       const transaction = await storage.createTransaction({
         ...validatedData,
         userId: user.id,
+        status: status
       });
       
-      // Update user balance
-      const updatedUser = await storage.updateUserBalance(user.id, validatedData.amount);
-      
-      res.status(201).json({ transaction, user: updatedUser });
+      res.status(201).json({ transaction, user });
     } catch (error) {
       res.status(400).json({ message: "Invalid transaction data" });
     }
@@ -326,6 +328,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(betsWithUsernames);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch pending bets" });
+    }
+  });
+  
+  // Get pending transactions (deposits/withdrawals) that need to be processed (admin only)
+  app.get("/api/admin/pending-transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    try {
+      // Get all transactions with status "pending"
+      const pendingTransactions = Array.from(storage.transactions.values())
+        .filter(transaction => transaction.status === "pending")
+        .map(async (transaction) => {
+          // Get username for each transaction
+          const user = await storage.getUser(transaction.userId);
+          return {
+            ...transaction,
+            username: user?.username || "Unknown",
+          };
+        });
+        
+      const transactionsWithUsernames = await Promise.all(pendingTransactions);
+      
+      res.json(transactionsWithUsernames);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pending transactions" });
     }
   });
   
