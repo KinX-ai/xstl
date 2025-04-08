@@ -75,8 +75,11 @@ export class MemStorage implements IStorage {
     const id = this.currentId++;
     const now = new Date();
     const user: User = { 
-      ...insertUser, 
-      id, 
+      id,
+      username: insertUser.username, 
+      password: insertUser.password,
+      email: insertUser.email,
+      phoneNumber: insertUser.phoneNumber || null,
       balance: 500000, // Start with 500,000 VND
       role: insertUser.email === "admin@example.com" ? "admin" : "user", // Set admin role for specific email
       createdAt: now

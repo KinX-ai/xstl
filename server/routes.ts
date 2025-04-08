@@ -173,12 +173,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
+      // Kiểm tra giới hạn thời gian đặt cược (chỉ được đặt cược trước 18:15)
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      if (hours > 18 || (hours === 18 && minutes >= 15)) {
+        return res.status(400).json({ 
+          message: "Đã quá thời gian đặt cược. Thời gian đặt cược chỉ đến 18:15 mỗi ngày."
+        });
+      }
+      
       const validatedData = insertBetSchema.parse(req.body);
       const user = req.user as Express.User;
       
       // Check if user has enough balance
       if (user.balance < validatedData.amount) {
-        return res.status(400).json({ message: "Insufficient balance" });
+        return res.status(400).json({ message: "Số dư không đủ" });
       }
       
       // Create bet
@@ -192,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: user.id,
         type: "bet",
         amount: -validatedData.amount,
-        details: `Bet on numbers: ${validatedData.numbers.join(", ")}`,
+        details: `Đặt cược ${validatedData.betType}: ${validatedData.numbers.join(", ")}`,
         status: "completed",
       });
       
@@ -201,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json({ bet, transaction, user: updatedUser });
     } catch (error) {
-      res.status(400).json({ message: "Invalid bet data" });
+      res.status(400).json({ message: "Dữ liệu đặt cược không hợp lệ" });
     }
   });
 
@@ -348,13 +359,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      // Kiểm tra giới hạn thời gian trả thưởng (chỉ được trả thưởng sau 19:59)
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      if (hours < 19 || (hours === 19 && minutes < 59)) {
+        return res.status(400).json({ 
+          message: "Chưa đến thời gian trả thưởng. Thời gian trả thưởng là sau 19:59 mỗi ngày." 
+        });
+      }
+      
       // Get the latest lottery results
       const results = await storage.getLotteryResults();
       if (results.length === 0) {
-        return res.status(400).json({ message: "No lottery results available" });
+        return res.status(400).json({ message: "Chưa có kết quả xổ số cho ngày hôm nay" });
       }
       
       const latestResult = results[0];
+      const lotteryResults = latestResult.results as any;
       
       // Get all pending bets
       const pendingBets = Array.from(storage.bets.values())
@@ -365,34 +388,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Process each bet
       for (const bet of pendingBets) {
-        // Simulating win/loss logic - in a real implementation this would be more complex
-        // For simplicity, let's say 20% of bets win
-        const hasWon = Math.random() < 0.2;
+        // Kiểm tra vé số có trúng thưởng không
+        let hasWon = false;
+        let winMultiplier = 0;
+        
+        // Logic kiểm tra vé trúng (đơn giản hóa)
+        // Trong thực tế, logic này sẽ phức tạp hơn và phụ thuộc vào loại vé
+        // Đây chỉ là mô phỏng cho mục đích demo
+        switch (bet.betType) {
+          case "de": // Đề (2 số cuối của giải đặc biệt)
+            const special = lotteryResults.special;
+            const lastTwo = special.slice(-2);
+            hasWon = bet.numbers.includes(lastTwo);
+            winMultiplier = 80;
+            break;
+          case "lo": // Lô (2 số bất kỳ trong tất cả các giải)
+            const allNumbers = [
+              lotteryResults.special,
+              lotteryResults.first,
+              ...lotteryResults.second,
+              ...lotteryResults.third,
+              ...lotteryResults.fourth,
+              ...lotteryResults.fifth,
+              ...lotteryResults.sixth,
+              ...lotteryResults.seventh
+            ];
+            
+            // Lấy 2 số cuối của mỗi giải
+            const lastTwoDigits = allNumbers.map(num => num.slice(-2));
+            
+            // Kiểm tra xem số người chơi đặt có xuất hiện trong kết quả không
+            hasWon = bet.numbers.some(num => lastTwoDigits.includes(num));
+            winMultiplier = 70;
+            break;
+          case "xien2": // Xiên 2 (2 số lô cùng về)
+            // Giả lập: 10% xác suất thắng
+            hasWon = Math.random() < 0.1;
+            winMultiplier = 15;
+            break;
+          case "xien3": // Xiên 3 (3 số lô cùng về)
+            // Giả lập: 5% xác suất thắng
+            hasWon = Math.random() < 0.05;
+            winMultiplier = 40;
+            break;
+          case "xien4": // Xiên 4 (4 số lô cùng về)
+            // Giả lập: 2% xác suất thắng
+            hasWon = Math.random() < 0.02;
+            winMultiplier = 100;
+            break;
+          default:
+            // Giả lập: 20% xác suất thắng
+            hasWon = Math.random() < 0.2;
+            winMultiplier = 50;
+        }
         
         if (hasWon) {
-          // Calculate win amount based on bet type and amount
-          // This is a very simplified version
-          let winMultiplier = 0;
-          switch (bet.betType) {
-            case "de":
-              winMultiplier = 80;
-              break;
-            case "lo":
-              winMultiplier = 70;
-              break;
-            case "xien2":
-              winMultiplier = 15;
-              break;
-            case "xien3":
-              winMultiplier = 40;
-              break;
-            case "xien4":
-              winMultiplier = 100;
-              break;
-            default:
-              winMultiplier = 50;
-          }
-          
           const winAmount = bet.amount * winMultiplier;
           
           // Update bet status and win amount
@@ -429,7 +479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         winAmount: totalWinAmount
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to process prizes" });
+      res.status(500).json({ message: "Lỗi khi xử lý trả thưởng" });
     }
   });
 
@@ -526,7 +576,7 @@ function extractLotteryResults(rawHtml: string): any {
           results: {
             special: prizeData.db || "92568",
             first: prizeData.nhat || "48695",
-            second: [prizeData.nhi] || ["92735", "19304"],
+            second: prizeData.nhi ? [prizeData.nhi] : ["92735", "19304"],
             third: (prizeData.ba || "").split(" ").filter(Boolean) || ["39857", "90815", "16359", "83649", "21947", "12376"],
             fourth: (prizeData.tu || "").split(" ").filter(Boolean) || ["1947", "3658", "7539", "5824"],
             fifth: (prizeData.nam || "").split(" ").filter(Boolean) || ["5297", "8714", "3852", "2957", "0463", "3175"],
