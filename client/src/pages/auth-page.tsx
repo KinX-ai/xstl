@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -29,13 +30,7 @@ const registerSchema = z.object({
 export default function AuthPage() {
   const { loginMutation, registerMutation, user } = useAuth();
   const [, setLocation] = useLocation();
-
-  // If user is already logged in, redirect to home page
-  if (user) {
-    setLocation("/");
-    return null;
-  }
-
+  
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -63,6 +58,13 @@ export default function AuthPage() {
     const { confirmPassword, ...registerData } = values;
     registerMutation.mutate(registerData);
   };
+
+  // If user is already logged in, redirect to home page
+  React.useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
