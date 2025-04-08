@@ -13,7 +13,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { PRIZE_RATES as PrizeRates, DEFAULT_LO_AMOUNT as LoAmount } from "@/lib/lottery-api";
+import { PRIZE_RATES, DEFAULT_LO_AMOUNT } from "@/lib/lottery-api";
 
 interface BettingFormProps {
   betAmount: number;
@@ -55,23 +55,23 @@ export default function BettingForm({
     // Tính tiền thắng dự kiến dựa trên loại cược và số tiền đặt
     let rate = 0;
     if (betMode === "de") {
-      rate = betType === "Đề đặc biệt" ? PrizeRates.special : PrizeRates.first;
+      rate = betType === "Đề đặc biệt" ? PRIZE_RATES.special : PRIZE_RATES.first;
     } else if (betMode === "lo") {
-      rate = betType === "Lô 3 số" ? PrizeRates.lo3so : PrizeRates.lo2so;
+      rate = betType === "Lô 3 số" ? PRIZE_RATES.lo3so : PRIZE_RATES.lo2so;
     } else if (betMode === "xien") {
       switch (xienCount) {
-        case 2: rate = PrizeRates.xienhai; break;
-        case 3: rate = PrizeRates.xienba; break;
-        case 4: rate = PrizeRates.xienbon; break;
+        case 2: rate = PRIZE_RATES.xienhai; break;
+        case 3: rate = PRIZE_RATES.xienba; break;
+        case 4: rate = PRIZE_RATES.xienbon; break;
       }
     }
     
     // Lô được tính theo số điểm (1 điểm = 24.000đ)
     if (betMode === "lo") {
-      const numPoints = betAmount / LoAmount;
+      const numPoints = betAmount / DEFAULT_LO_AMOUNT;
       // Đối với lô, mỗi số được tính riêng
       const numSelectedNumbers = selectedNumbers.length || 1;
-      setPotentialWinnings(numPoints * rate * LoAmount); // Tiền thắng của 1 số
+      setPotentialWinnings(numPoints * rate * DEFAULT_LO_AMOUNT); // Tiền thắng của 1 số
     } else if (betMode === "de") {
       // Đối với đề, tổng tiền cược sẽ là số lượng số * số tiền đặt
       const numSelectedNumbers = selectedNumbers.length || 1;
