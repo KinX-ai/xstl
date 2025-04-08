@@ -233,7 +233,7 @@ export default function LandingPage() {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="border-white text-white hover:bg-white/20"
+                  className="border-white text-black hover:bg-white/20"
                   onClick={() => scrollToSection('results')}
                 >
                   Xem Kết Quả Hôm Nay

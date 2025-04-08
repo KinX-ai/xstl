@@ -41,7 +41,8 @@ export default function HomePage() {
                   </Button>
                   <Button asChild variant="outline" className="bg-white/10 text-white hover:bg-white/20 font-bold">
                     <Link href="/results">
-                      <Trophy className="mr-2 h-4 w-4" /> Xem Kết Quả
+                      <Trophy className="mr-2 h-4 w-4" /> Kết Quả Mới Nhất
+ Quả
                     </Link>
                   </Button>
                 </div>
