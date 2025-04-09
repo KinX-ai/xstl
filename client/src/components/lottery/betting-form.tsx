@@ -173,33 +173,26 @@ export default function BettingForm({
       );
     }
 
+    // Format rates to display in thousands
+    const formatRate = (rate: number) => rate >= 1000 ? (rate/1000).toFixed(1) : rate;
+
     if (actualBetMode === "de") {
-      // Chỉ lấy các cài đặt có trong prizeRates và có giá trị lớn hơn 0
-      // Tạo động danh sách các tùy chọn dựa trên cài đặt thực tế từ admin
-      const deOptions = Object.entries(prizeRates)
-        .filter(([key, value]) => {
-          // Chỉ lấy các trường là giải thưởng đề và có giá trị > 0
-          return ["special", "first", "second", "third", "fourth", "fifth", "sixth", "seventh"].includes(key) && Number(value) > 0;
-        })
-        .map(([key, value]) => {
-          // Hiển thị tên và tỷ lệ tương ứng
-          const labelMap: Record<string, string> = {
-            special: "Đề đặc biệt",
-            first: "Đề giải nhất",
-            second: "Đề giải nhì",
-            third: "Đề giải ba",
-            fourth: "Đề giải tư",
-            fifth: "Đề giải năm",
-            sixth: "Đề giải sáu",
-            seventh: "Đề giải bảy"
-          };
-          
-          return {
-            value: key,
-            label: labelMap[key],
-            rate: Number(value) / 1000 // Chuyển đổi từ đồng sang nghìn đồng
-          };
-        });
+      // Lấy các cài đặt từ admin cho đánh đề
+      const deOptions = [
+        { key: 'special', label: 'Đề đặc biệt', rate: prizeRates.special },
+        { key: 'first', label: 'Đề giải nhất', rate: prizeRates.first },
+        { key: 'second', label: 'Đề giải nhì', rate: prizeRates.second },
+        { key: 'third', label: 'Đề giải ba', rate: prizeRates.third },
+        { key: 'fourth', label: 'Đề giải tư', rate: prizeRates.fourth },
+        { key: 'fifth', label: 'Đề giải năm', rate: prizeRates.fifth },
+        { key: 'sixth', label: 'Đề giải sáu', rate: prizeRates.sixth },
+        { key: 'seventh', label: 'Đề giải bảy', rate: prizeRates.seventh }
+      ].filter(option => option.rate > 0)
+        .map(option => ({
+          value: option.key,
+          label: option.label,
+          rate: formatRate(option.rate)
+        }));
 
       return (
         <div className="space-y-3">
