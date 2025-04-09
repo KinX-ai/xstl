@@ -171,9 +171,9 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại đề" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Đề đặc biệt">Đề đặc biệt (x{prizeRates?.special || 80})</SelectItem>
-              <SelectItem value="Đề đầu">Đề đầu (x{prizeRates?.first || 80})</SelectItem>
-              <SelectItem value="Đề đuôi">Đề đuôi (x{prizeRates?.first || 80})</SelectItem>
+              <SelectItem value="de">Đề đặc biệt (x{(prizeRates?.special || 80000) / 1000})</SelectItem>
+              <SelectItem value="first">Đề đầu (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
+              <SelectItem value="first">Đề đuôi (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
             </SelectContent>
           </Select>
 
