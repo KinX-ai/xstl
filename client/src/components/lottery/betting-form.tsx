@@ -171,11 +171,14 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại đề" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="special">Đề đặc biệt (x{(prizeRates?.special || 80000) / 1000})</SelectItem>
-              <SelectItem value="first">Đề giải nhất (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
-              <SelectItem value="second">Đề giải nhì (x{(prizeRates?.second || 10000) / 1000})</SelectItem>
-              <SelectItem value="third">Đề giải ba (x{(prizeRates?.third || 5000) / 1000})</SelectItem>
-              <SelectItem value="fourth">Đề giải tư (x{(prizeRates?.fourth || 1200) / 1000})</SelectItem>
+              <SelectItem value="de_db">Đề đặc biệt (x{(prizeRates?.special || 80000) / 1000})</SelectItem>
+              <SelectItem value="de_1">Đề giải nhất (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
+              <SelectItem value="de_2">Đề giải nhì (x{(prizeRates?.second || 10000) / 1000})</SelectItem>
+              <SelectItem value="de_3">Đề giải ba (x{(prizeRates?.third || 5000) / 1000})</SelectItem>
+              <SelectItem value="de_4">Đề giải tư (x{(prizeRates?.fourth || 1200) / 1000})</SelectItem>
+              <SelectItem value="de_5">Đề giải năm (x{(prizeRates?.fifth || 600) / 1000})</SelectItem>
+              <SelectItem value="de_6">Đề giải sáu (x{(prizeRates?.sixth || 400) / 1000})</SelectItem>
+              <SelectItem value="de_7">Đề giải bảy (x{(prizeRates?.seventh || 200) / 1000})</SelectItem>
               <SelectItem value="fifth">Đề giải năm (x{(prizeRates?.fifth || 600) / 1000})</SelectItem>
               <SelectItem value="sixth">Đề giải sáu (x{(prizeRates?.sixth || 400) / 1000})</SelectItem>
               <SelectItem value="seventh">Đề giải bảy (x{(prizeRates?.seventh || 200) / 1000})</SelectItem>
@@ -198,8 +201,9 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại lô" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Lô 2 số">Lô 2 số (x{prizeRates?.lo2so || 70})</SelectItem>
-              <SelectItem value="Lô 3 số">Lô 3 số (x{prizeRates?.lo3so || 70})</SelectItem>
+              <SelectItem value="lo2so">Lô 2 số (x{prizeRates?.lo2so || 70})</SelectItem>
+              <SelectItem value="lo3so">Lô 3 số (x{prizeRates?.lo3so || 700})</SelectItem>
+              <SelectItem value="bacanh">Ba càng (x{prizeRates?.bacanh || 880})</SelectItem>
             </SelectContent>
           </Select>
 
