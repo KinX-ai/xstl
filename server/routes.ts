@@ -431,9 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get prize rates (admin only)
   app.get("/api/admin/prize-rates", async (req, res) => {
-    // In a real implementation, we'd get this from database
-    // For now, just return static values
-    const prizeRates = {
+    const prizeRates = storage.getPrizeRates();
       special: 80000, // Đặc biệt: 1 số trúng x 80.000đ
       first: 25000,   // Giải nhất: 1 số trúng x 25.000đ
       second: 10000,  // Giải nhì: 1 số trúng x 10.000đ
@@ -466,9 +464,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // In a real implementation, we'd save this to database
-      // For now, just return the received data
-      res.json(req.body);
+      const savedRates = storage.savePrizeRates(req.body);
+      res.json(savedRates);
     } catch (error) {
       res.status(500).json({ message: "Failed to save prize rates" });
     }
