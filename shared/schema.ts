@@ -35,6 +35,12 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const prizeRates = pgTable("prize_rates", {
+  id: serial("id").primaryKey(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const lotteryResults = pgTable("lottery_results", {
   id: serial("id").primaryKey(),
   date: timestamp("date").notNull(),

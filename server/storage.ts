@@ -295,15 +295,31 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  // Prize rates implementation using in-memory storage
-  // In a real implementation, this would use a database table
   async getPrizeRates(): Promise<typeof DEFAULT_PRIZE_RATES> {
-    return this.prizeRatesInMemory;
+    // Try to get from database first
+    try {
+      const result = await db.query('SELECT data FROM prize_rates ORDER BY id DESC LIMIT 1');
+      if (result.rows.length > 0) {
+        return result.rows[0].data;
+      }
+    } catch (error) {
+      console.error('Error fetching prize rates:', error);
+    }
+    // Return default if no saved rates
+    return DEFAULT_PRIZE_RATES;
   }
 
   async savePrizeRates(rates: typeof DEFAULT_PRIZE_RATES): Promise<typeof DEFAULT_PRIZE_RATES> {
-    this.prizeRatesInMemory = { ...rates };
-    return this.prizeRatesInMemory;
+    try {
+      await db.query(
+        'INSERT INTO prize_rates (data) VALUES ($1)',
+        [rates]
+      );
+      return rates;
+    } catch (error) {
+      console.error('Error saving prize rates:', error);
+      throw error;
+    }
   }
 }
 
