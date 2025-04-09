@@ -431,25 +431,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get prize rates (admin only)
   app.get("/api/admin/prize-rates", async (req, res) => {
-    const prizeRates = {
-      special: 80000, // Đặc biệt: 1 số trúng x 80.000đ
-      first: 25000,   // Giải nhất: 1 số trúng x 25.000đ
-      second: 10000,  // Giải nhì: 1 số trúng x 10.000đ
-      third: 5000,    // Giải ba: 1 số trúng x 5.000đ
-      fourth: 1200,   // Giải tư: 1 số trúng x 1.200đ
-      fifth: 600,     // Giải năm: 1 số trúng x 600đ
-      sixth: 400,     // Giải sáu: 1 số trúng x 400đ
-      seventh: 200,   // Giải bảy: 1 số trúng x 200đ
-      // Các tỷ lệ cho lô
-      lo2so: 70,      // Lô 2 số: 1 số trúng x 70đ
-      lo3so: 700,     // Lô 3 số: 1 số trúng x 700đ
-      bacanh: 880,    // Ba càng: 1 số trúng x 880đ
-      xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
-      xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
-      xienbon: 100    // Xiên 4: 1 bộ 4 trúng x 100đ
-    };
-
-    res.json(prizeRates);
+    try {
+      const prizeRates = await storage.getPrizeRates();
+      res.json(prizeRates);
+    } catch (error) {
+      console.error("Error fetching prize rates:", error);
+      res.status(500).json({ message: "Failed to fetch prize rates" });
+    }
   });
 
   // Save prize rates (admin only)
@@ -464,9 +452,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const savedRates = storage.savePrizeRates(req.body);
+      const savedRates = await storage.savePrizeRates(req.body);
       res.json(savedRates);
     } catch (error) {
+      console.error("Error saving prize rates:", error);
       res.status(500).json({ message: "Failed to save prize rates" });
     }
   });
@@ -574,6 +563,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let processedCount = 0;
       let totalWinAmount = 0;
 
+      // Get prize rates from database
+      const prizeRates = await storage.getPrizeRates();
+      
       // Process each bet
       for (const bet of pendingBets) {
         // Kiểm tra vé số có trúng thưởng không
@@ -588,7 +580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const special = lotteryResults.special;
             const lastTwo = special.slice(-2);
             hasWon = bet.numbers.includes(lastTwo);
-            winMultiplier = 80;
+            winMultiplier = prizeRates.special / 1000; // Convert from đồng to nghìn đồng
             break;
           case "lo": // Lô (2 số bất kỳ trong tất cả các giải)
             const allNumbers = [
@@ -607,33 +599,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Kiểm tra xem số người chơi đặt có xuất hiện trong kết quả không
             hasWon = bet.numbers.some(num => lastTwoDigits.includes(num));
-            winMultiplier = 70;
+            winMultiplier = prizeRates.lo2so;
             break;
           case "xien2": // Xiên 2 (2 số lô cùng về)
             // Giả lập: 10% xác suất thắng
             hasWon = Math.random() < 0.1;
-            winMultiplier = 15;
+            winMultiplier = prizeRates.xienhai;
             break;
           case "xien3": // Xiên 3 (3 số lô cùng về)
             // Giả lập: 5% xác suất thắng
             hasWon = Math.random() < 0.05;
-            winMultiplier = 40;
+            winMultiplier = prizeRates.xienba;
             break;
           case "xien4": // Xiên 4 (4 số lô cùng về)
             // Giả lập: 2% xác suất thắng
             hasWon = Math.random() < 0.02;
-            winMultiplier = 100;
+            winMultiplier = prizeRates.xienbon;
             break;
           case "bacanh": // Ba càng (3 số cuối của giải đặc biệt)
             const specialNum = lotteryResults.special;
             const lastThree = specialNum.slice(-3);
             hasWon = bet.numbers.includes(lastThree);
-            winMultiplier = 880;
+            winMultiplier = prizeRates.bacanh;
             break;
           default:
-            // Giả lập: 20% xác suất thắng
+            // Use special rate as fallback
             hasWon = Math.random() < 0.2;
-            winMultiplier = 50;
+            winMultiplier = prizeRates.special / 1000;
         }
 
         if (hasWon) {

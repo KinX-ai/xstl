@@ -6,14 +6,11 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { DEFAULT_PRIZE_RATES } from '@shared/schema';
 
-// Add prize rates storage
-let prizeRatesConfig = { ...DEFAULT_PRIZE_RATES };
+// Add prize rates table name to use in DatabaseStorage
+export const PRIZE_RATES_KEY = 'prize_rates';
 
-export const getPrizeRates = () => prizeRatesConfig;
-export const savePrizeRates = (rates: typeof DEFAULT_PRIZE_RATES) => {
-  prizeRatesConfig = rates;
-  return prizeRatesConfig;
-};
+// Used for in-memory fallback
+let prizeRatesConfig = { ...DEFAULT_PRIZE_RATES };
 
 
 const PostgresSessionStore = connectPg(session);
@@ -37,6 +34,10 @@ export interface IStorage {
   getLotteryResults(): Promise<LotteryResult[]>;
   saveLotteryResults(results: any): Promise<LotteryResult>;
 
+  // Prize rates management
+  getPrizeRates(): Promise<typeof DEFAULT_PRIZE_RATES>;
+  savePrizeRates(rates: typeof DEFAULT_PRIZE_RATES): Promise<typeof DEFAULT_PRIZE_RATES>;
+
   // For admin access
   users: Map<number, User>;
   bets: Map<number, Bet>;
@@ -50,6 +51,7 @@ export class DatabaseStorage implements IStorage {
   bets: Map<number, Bet> = new Map();
   transactions: Map<number, Transaction> = new Map();
   sessionStore: session.Store;
+  private prizeRatesInMemory: typeof DEFAULT_PRIZE_RATES = { ...DEFAULT_PRIZE_RATES };
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -291,6 +293,17 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return result[0];
+  }
+
+  // Prize rates implementation using in-memory storage
+  // In a real implementation, this would use a database table
+  async getPrizeRates(): Promise<typeof DEFAULT_PRIZE_RATES> {
+    return this.prizeRatesInMemory;
+  }
+
+  async savePrizeRates(rates: typeof DEFAULT_PRIZE_RATES): Promise<typeof DEFAULT_PRIZE_RATES> {
+    this.prizeRatesInMemory = { ...rates };
+    return this.prizeRatesInMemory;
   }
 }
 
