@@ -431,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get prize rates (admin only)
   app.get("/api/admin/prize-rates", async (req, res) => {
-    const prizeRates = storage.getPrizeRates();
+    const prizeRates = {
       special: 80000, // Đặc biệt: 1 số trúng x 80.000đ
       first: 25000,   // Giải nhất: 1 số trúng x 25.000đ
       second: 10000,  // Giải nhì: 1 số trúng x 10.000đ
@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       bacanh: 880,    // Ba càng: 1 số trúng x 880đ
       xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
       xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
-      xienbon: 100,   // Xiên 4: 1 bộ 4 trúng x 100đ
+      xienbon: 100    // Xiên 4: 1 bộ 4 trúng x 100đ
     };
 
     res.json(prizeRates);
