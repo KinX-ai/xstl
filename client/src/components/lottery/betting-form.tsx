@@ -52,7 +52,7 @@ export default function BettingForm({
 }: BettingFormProps) {
   const [internalBetMode, setInternalBetMode] = useState<"de" | "lo" | "xien" | "bacanh">(betMode as "de" | "lo" | "xien" | "bacanh");
 
-  // Use internal or external state based on prop presence
+  // Use internal or external state based on prop presence  
   const actualBetMode = betMode || internalBetMode;
   const actualSetBetMode = (mode: string) => {
     if (setBetMode) {
@@ -66,6 +66,14 @@ export default function BettingForm({
   const [potentialWinnings, setPotentialWinnings] = useState<number>(0);
 
   // Fetch prize rates from admin config
+  const { data: prizeRates } = useQuery({
+    queryKey: ["/api/admin/prize-rates"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/prize-rates");
+      if (!response.ok) throw new Error("Failed to fetch prize rates");
+      return response.json();
+    }
+  });
   const { data: prizeRates } = useQuery({
     queryKey: ["/api/admin/prize-rates"],
     queryFn: async () => {
