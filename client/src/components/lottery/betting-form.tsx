@@ -118,7 +118,7 @@ export default function BettingForm({
   useEffect(() => {
     switch (actualBetMode) {
       case "de":
-        setBetType("de");
+        setBetType("special");
         break;
       case "lo":
         setBetType("lo2so");
@@ -130,7 +130,7 @@ export default function BettingForm({
         setBetType("bacanh");
         break;
       default:
-        setBetType("de");
+        setBetType("special");
     }
   }, [actualBetMode, xienCount, setBetType]);
 
@@ -171,7 +171,7 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại đề" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="de">Đề đặc biệt (x{(prizeRates?.special || 80000) / 1000})</SelectItem>
+              <SelectItem value="special">Đề đặc biệt (x{(prizeRates?.special || 80000) / 1000})</SelectItem>
               <SelectItem value="first">Đề đầu (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
               <SelectItem value="first">Đề đuôi (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
             </SelectContent>
