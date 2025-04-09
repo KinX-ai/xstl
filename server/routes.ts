@@ -26,6 +26,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const date = req.params.date;
       const results = await storage.getLotteryResults();
 
+function validateBetNumbers(numbers: string[], betType: string) {
+  switch (betType) {
+    case 'dau':
+      if (!numbers.every(n => n.length === 1 && !isNaN(Number(n)))) {
+        return { isValid: false, message: "Đề đầu phải là 1 số" };
+      }
+      break;
+    case 'duoi':
+      if (!numbers.every(n => n.length === 1 && !isNaN(Number(n)))) {
+        return { isValid: false, message: "Đề đuôi phải là 1 số" };
+      }
+      break;
+    case 'lo2sodau':
+    case 'lo2socuoi':
+      if (!numbers.every(n => n.length === 2 && !isNaN(Number(n)))) {
+        return { isValid: false, message: "Lô phải là 2 số" };
+      }
+      break;
+    case 'bacanh':
+      if (!numbers.every(n => n.length === 3 && !isNaN(Number(n)))) {
+        return { isValid: false, message: "Ba càng phải là 3 số" };
+      }
+      break;
+  }
+  return { isValid: true };
+}
+
+
       // Find result by date
       const result = results.find(r => {
         // Convert to string and compare with the date parameter
@@ -229,6 +257,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           message: "Đã quá thời gian đặt cược. Thời gian đặt cược chỉ đến 18:15 mỗi ngày."
         });
+      }
+
+      // Validate numbers based on bet type
+      const { numbers, betType } = req.body;
+      const numberValidation = validateBetNumbers(numbers, betType);
+      if (!numberValidation.isValid) {
+        return res.status(400).json({ message: numberValidation.message });
       }
 
       const validatedData = insertBetSchema.parse(req.body);

@@ -179,14 +179,9 @@ export default function BettingForm({
     if (actualBetMode === "de") {
       // Lấy các cài đặt từ admin cho đánh đề
       const deOptions = [
-        { key: 'special', label: 'Đề đặc biệt', rate: prizeRates.special },
-        { key: 'first', label: 'Đề giải nhất', rate: prizeRates.first },
-        { key: 'second', label: 'Đề giải nhì', rate: prizeRates.second },
-        { key: 'third', label: 'Đề giải ba', rate: prizeRates.third },
-        { key: 'fourth', label: 'Đề giải tư', rate: prizeRates.fourth },
-        { key: 'fifth', label: 'Đề giải năm', rate: prizeRates.fifth },
-        { key: 'sixth', label: 'Đề giải sáu', rate: prizeRates.sixth },
-        { key: 'seventh', label: 'Đề giải bảy', rate: prizeRates.seventh }
+        { key: 'special', label: 'Đề đặc biệt (2 số cuối)', rate: prizeRates.special },
+        { key: 'dau', label: 'Đề đầu (1 số đầu)', rate: prizeRates.dau },
+        { key: 'duoi', label: 'Đề đuôi (1 số cuối)', rate: prizeRates.duoi }
       ].filter(option => option.rate > 0)
         .map(option => ({
           value: option.key,
@@ -219,11 +214,11 @@ export default function BettingForm({
       );
     } else if (actualBetMode === "lo") {
       // Lấy danh sách động các loại lô từ cài đặt tỷ lệ trả thưởng
-      const loOptionKeys = ["lo2so", "lo3so", "bacanh"];
+      const loOptionKeys = ["lo2sodau", "lo2socuoi", "bacanh"];
       const labelMap: Record<string, string> = {
-        lo2so: "Lô 2 số",
-        lo3so: "Lô 3 số", 
-        bacanh: "Ba càng"
+        lo2sodau: "Lô 2 số đầu",
+        lo2socuoi: "Lô 2 số cuối",
+        bacanh: "Ba càng (3 số cuối)"
       };
       
       // Lọc các tùy chọn có tỷ lệ > 0

@@ -77,18 +77,13 @@ export type Transaction = typeof transactions.$inferSelect;
 export type LotteryResult = typeof lotteryResults.$inferSelect;
 
 export const DEFAULT_PRIZE_RATES = {
-  special: 80000, // Đặc biệt: 1 số trúng x 80.000đ
-  first: 25000,   // Giải nhất: 1 số trúng x 25.000đ
-  second: 10000,  // Giải nhì: 1 số trúng x 10.000đ
-  third: 5000,    // Giải ba: 1 số trúng x 5.000đ
-  fourth: 1200,   // Giải tư: 1 số trúng x 1.200đ
-  fifth: 600,     // Giải năm: 1 số trúng x 600đ
-  sixth: 400,     // Giải sáu: 1 số trúng x 400đ
-  seventh: 200,   // Giải bảy: 1 số trúng x 200đ
-  lo2so: 70,      // Lô 2 số: 1 số trúng x 70đ
-  lo3so: 700,     // Lô 3 số: 1 số trúng x 700đ
-  bacanh: 880,    // Ba càng: 1 số trúng x 880đ
-  xienhai: 15,    // Xiên 2: 1 cặp trúng x 15đ
-  xienba: 40,     // Xiên 3: 1 bộ 3 trúng x 40đ
-  xienbon: 100    // Xiên 4: 1 bộ 4 trúng x 100đ
+  special: 80000,    // Đề đặc biệt: 2 số cuối giải ĐB
+  dau: 80000,       // Đề đầu: 1 số đầu giải ĐB
+  duoi: 80000,      // Đề đuôi: 1 số cuối giải ĐB
+  lo2sodau: 70,     // Lô 2 số đầu giải ĐB
+  lo2socuoi: 70,    // Lô 2 số cuối giải ĐB
+  bacanh: 880,      // Ba càng: 3 số cuối giải ĐB
+  xienhai: 15,      // Xiên 2: 2 số trong tất cả giải
+  xienba: 40,       // Xiên 3: 3 số trong tất cả giải  
+  xienbon: 100      // Xiên 4: 4 số trong tất cả giải
 };
