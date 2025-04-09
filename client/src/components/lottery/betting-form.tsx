@@ -235,8 +235,7 @@ export default function BettingForm({
 
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
-            <p>• <strong>Tỷ lệ trả thưởng:</strong> {prizeRates?.bacanh || 880}x mỗi số trúng</p>
-            <p className="mt-1 text-xs text-muted-foreground">Ví dụ: Đặt 10.000đ và trúng sẽ được {(10000 * (prizeRates?.bacanh || 880)).toLocaleString()}đ</p>
+            <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {(prizeRates?.bacanh || 880000) / 1000}x</p>
           </div>
         </div>
       );
@@ -277,7 +276,7 @@ export default function BettingForm({
 
               <div className="mt-2 text-sm text-gray-600">
                 <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates?.bacanh || 880}x</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {(prizeRates?.bacanh || 880000) / 1000}x</p>
               </div>
             </div>
           </TabsContent>
@@ -348,7 +347,7 @@ export default function BettingForm({
             {actualBetMode === "bacanh" && (
               <>
                 <p>Bạn cần chọn số có 3 chữ số cho Ba càng</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {prizeRates?.bacanh || 880}x</p>
+                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {(prizeRates?.bacanh || 880000) / 1000}x</p>
               </>
             )}
           </div>
