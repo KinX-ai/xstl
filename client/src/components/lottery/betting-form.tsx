@@ -174,17 +174,32 @@ export default function BettingForm({
     }
 
     if (actualBetMode === "de") {
-      // Danh sách động các loại đề từ cài đặt tỷ lệ trả thưởng
-      const deOptions = [
-        { value: "special", label: "Đề đặc biệt", rate: prizeRates.special / 1000 }, 
-        { value: "first", label: "Đề giải nhất", rate: prizeRates.first / 1000 },
-        { value: "second", label: "Đề giải nhì", rate: prizeRates.second / 1000 },
-        { value: "third", label: "Đề giải ba", rate: prizeRates.third / 1000 }, 
-        { value: "fourth", label: "Đề giải tư", rate: prizeRates.fourth / 1000 },
-        { value: "fifth", label: "Đề giải năm", rate: prizeRates.fifth / 1000 },
-        { value: "sixth", label: "Đề giải sáu", rate: prizeRates.sixth / 1000 },
-        { value: "seventh", label: "Đề giải bảy", rate: prizeRates.seventh / 1000 }
-      ];
+      // Chỉ lấy các cài đặt có trong prizeRates và có giá trị lớn hơn 0
+      // Tạo động danh sách các tùy chọn dựa trên cài đặt thực tế từ admin
+      const deOptions = Object.entries(prizeRates)
+        .filter(([key, value]) => {
+          // Chỉ lấy các trường là giải thưởng đề và có giá trị > 0
+          return ["special", "first", "second", "third", "fourth", "fifth", "sixth", "seventh"].includes(key) && Number(value) > 0;
+        })
+        .map(([key, value]) => {
+          // Hiển thị tên và tỷ lệ tương ứng
+          const labelMap: Record<string, string> = {
+            special: "Đề đặc biệt",
+            first: "Đề giải nhất",
+            second: "Đề giải nhì",
+            third: "Đề giải ba",
+            fourth: "Đề giải tư",
+            fifth: "Đề giải năm",
+            sixth: "Đề giải sáu",
+            seventh: "Đề giải bảy"
+          };
+          
+          return {
+            value: key,
+            label: labelMap[key],
+            rate: Number(value) / 1000 // Chuyển đổi từ đồng sang nghìn đồng
+          };
+        });
 
       return (
         <div className="space-y-3">
@@ -210,12 +225,22 @@ export default function BettingForm({
         </div>
       );
     } else if (actualBetMode === "lo") {
-      // Danh sách động các loại lô từ cài đặt tỷ lệ trả thưởng
-      const loOptions = [
-        { value: "lo2so", label: "Lô 2 số", rate: prizeRates.lo2so },
-        { value: "lo3so", label: "Lô 3 số", rate: prizeRates.lo3so },
-        { value: "bacanh", label: "Ba càng", rate: prizeRates.bacanh }
-      ];
+      // Lấy danh sách động các loại lô từ cài đặt tỷ lệ trả thưởng
+      const loOptionKeys = ["lo2so", "lo3so", "bacanh"];
+      const labelMap: Record<string, string> = {
+        lo2so: "Lô 2 số",
+        lo3so: "Lô 3 số", 
+        bacanh: "Ba càng"
+      };
+      
+      // Lọc các tùy chọn có tỷ lệ > 0
+      const loOptions = Object.entries(prizeRates)
+        .filter(([key, value]) => loOptionKeys.includes(key) && Number(value) > 0)
+        .map(([key, value]) => ({
+          value: key,
+          label: labelMap[key],
+          rate: Number(value)
+        }));
 
       return (
         <div className="space-y-3">
@@ -240,12 +265,22 @@ export default function BettingForm({
         </div>
       );
     } else if (actualBetMode === "xien") {
-      // Danh sách động các loại xiên từ cài đặt tỷ lệ trả thưởng
-      const xienOptions = [
-        { count: 2, rate: prizeRates.xienhai },
-        { count: 3, rate: prizeRates.xienba },
-        { count: 4, rate: prizeRates.xienbon }
-      ];
+      // Lấy động các loại xiên từ cài đặt tỷ lệ trả thưởng
+      const xienMap: Record<string, number> = {
+        "xienhai": 2,
+        "xienba": 3,
+        "xienbon": 4
+      };
+      
+      // Lọc xiên nào có tỷ lệ > 0
+      const xienOptions = Object.entries(prizeRates)
+        .filter(([key, value]) => 
+          ["xienhai", "xienba", "xienbon"].includes(key) && Number(value) > 0
+        )
+        .map(([key, value]) => ({
+          count: xienMap[key],
+          rate: Number(value)
+        }));
 
       return (
         <div className="space-y-3">
