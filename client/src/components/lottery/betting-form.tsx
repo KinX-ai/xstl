@@ -74,14 +74,6 @@ export default function BettingForm({
       return response.json();
     }
   });
-  const { data: prizeRates } = useQuery({
-    queryKey: ["/api/admin/prize-rates"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/prize-rates");
-      if (!response.ok) throw new Error("Failed to fetch prize rates");
-      return response.json();
-    }
-  });
 
 
   const predefinedAmounts = [10000, 20000, 50000, 100000, 200000];
