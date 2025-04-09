@@ -161,9 +161,31 @@ export default function BettingForm({
     }
   };
 
-  // Tạo các mục lựa chọn cho thể loại đánh lô đề
+  // Tạo các mục lựa chọn cho thể loại đánh lô đề dựa trên cài đặt từ admin
   const renderBetTypeOptions = () => {
+    // Kiểm tra xem prizeRates đã được tải chưa
+    if (!prizeRates) {
+      return (
+        <div className="flex justify-center items-center py-5">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <span className="ml-2">Đang tải tỷ lệ trả thưởng...</span>
+        </div>
+      );
+    }
+
     if (actualBetMode === "de") {
+      // Danh sách động các loại đề từ cài đặt tỷ lệ trả thưởng
+      const deOptions = [
+        { value: "special", label: "Đề đặc biệt", rate: prizeRates.special / 1000 }, 
+        { value: "first", label: "Đề giải nhất", rate: prizeRates.first / 1000 },
+        { value: "second", label: "Đề giải nhì", rate: prizeRates.second / 1000 },
+        { value: "third", label: "Đề giải ba", rate: prizeRates.third / 1000 }, 
+        { value: "fourth", label: "Đề giải tư", rate: prizeRates.fourth / 1000 },
+        { value: "fifth", label: "Đề giải năm", rate: prizeRates.fifth / 1000 },
+        { value: "sixth", label: "Đề giải sáu", rate: prizeRates.sixth / 1000 },
+        { value: "seventh", label: "Đề giải bảy", rate: prizeRates.seventh / 1000 }
+      ];
+
       return (
         <div className="space-y-3">
           <Label className="text-base">Chọn loại đề:</Label>
@@ -172,14 +194,11 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại đề" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="special">Đề đặc biệt (x{(prizeRates?.special || 80000) / 1000})</SelectItem>
-              <SelectItem value="first">Đề giải nhất (x{(prizeRates?.first || 25000) / 1000})</SelectItem>
-              <SelectItem value="second">Đề giải nhì (x{(prizeRates?.second || 10000) / 1000})</SelectItem>
-              <SelectItem value="third">Đề giải ba (x{(prizeRates?.third || 5000) / 1000})</SelectItem>
-              <SelectItem value="fourth">Đề giải tư (x{(prizeRates?.fourth || 1200) / 1000})</SelectItem>
-              <SelectItem value="fifth">Đề giải năm (x{(prizeRates?.fifth || 600) / 1000})</SelectItem>
-              <SelectItem value="sixth">Đề giải sáu (x{(prizeRates?.sixth || 400) / 1000})</SelectItem>
-              <SelectItem value="seventh">Đề giải bảy (x{(prizeRates?.seventh || 200) / 1000})</SelectItem>
+              {deOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label} (x{option.rate})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -191,6 +210,13 @@ export default function BettingForm({
         </div>
       );
     } else if (actualBetMode === "lo") {
+      // Danh sách động các loại lô từ cài đặt tỷ lệ trả thưởng
+      const loOptions = [
+        { value: "lo2so", label: "Lô 2 số", rate: prizeRates.lo2so },
+        { value: "lo3so", label: "Lô 3 số", rate: prizeRates.lo3so },
+        { value: "bacanh", label: "Ba càng", rate: prizeRates.bacanh }
+      ];
+
       return (
         <div className="space-y-3">
           <Label className="text-base">Chọn loại lô:</Label>
@@ -199,9 +225,11 @@ export default function BettingForm({
               <SelectValue placeholder="Chọn loại lô" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="lo2so">Lô 2 số (x{prizeRates?.lo2so || 70})</SelectItem>
-              <SelectItem value="lo3so">Lô 3 số (x{prizeRates?.lo3so || 700})</SelectItem>
-              <SelectItem value="bacanh">Ba càng (x{prizeRates?.bacanh || 880})</SelectItem>
+              {loOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label} (x{option.rate})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -212,18 +240,25 @@ export default function BettingForm({
         </div>
       );
     } else if (actualBetMode === "xien") {
+      // Danh sách động các loại xiên từ cài đặt tỷ lệ trả thưởng
+      const xienOptions = [
+        { count: 2, rate: prizeRates.xienhai },
+        { count: 3, rate: prizeRates.xienba },
+        { count: 4, rate: prizeRates.xienbon }
+      ];
+
       return (
         <div className="space-y-3">
           <Label className="text-base">Chọn loại xiên:</Label>
           <div className="flex flex-wrap gap-2">
-            {[2, 3, 4].map((count) => (
+            {xienOptions.map((option) => (
               <Button
-                key={count}
+                key={option.count}
                 type="button"
-                variant={xienCount === count ? "default" : "outline"}
-                onClick={() => handleXienCountChange(count)}
+                variant={xienCount === option.count ? "default" : "outline"}
+                onClick={() => handleXienCountChange(option.count)}
               >
-                Xiên {count} (x{count === 2 ? prizeRates?.xienhai || 15 : count === 3 ? prizeRates?.xienba || 40 : prizeRates?.xienbon || 100})
+                Xiên {option.count} (x{option.rate})
               </Button>
             ))}
           </div>
@@ -236,13 +271,16 @@ export default function BettingForm({
         </div>
       );
     } else if (actualBetMode === "bacanh") {
+      // Lấy tỷ lệ ba càng từ cài đặt
+      const bacanhRate = prizeRates.bacanh / 1000;
+
       return (
         <div className="space-y-3">
           <Label className="text-base">Ba càng (3 số cuối giải ĐB):</Label>
 
           <div className="mt-2 text-sm text-gray-600">
             <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
-            <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {(prizeRates?.bacanh || 880000) / 1000}x</p>
+            <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {bacanhRate}x</p>
           </div>
         </div>
       );
@@ -278,14 +316,7 @@ export default function BettingForm({
           </TabsContent>
 
           <TabsContent value="bacanh" className="space-y-4">
-            <div className="space-y-3">
-              <Label className="text-base">Ba càng (3 số cuối giải ĐB):</Label>
-
-              <div className="mt-2 text-sm text-gray-600">
-                <p>• <strong>Ba càng:</strong> Đánh trúng 3 số cuối của giải đặc biệt</p>
-                <p className="mt-1 text-xs">Tỷ lệ trả thưởng: {(prizeRates?.bacanh || 880000) / 1000}x</p>
-              </div>
-            </div>
+            {renderBetTypeOptions()}
           </TabsContent>
         </Tabs>
 

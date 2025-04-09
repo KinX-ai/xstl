@@ -165,7 +165,15 @@ export default function AdminPage() {
         title: "Lưu thành công",
         description: "Cài đặt tỷ lệ trả thưởng đã được cập nhật",
       });
+      // Invalidate tất cả các queries liên quan đến prize rates để các component khác được cập nhật
       queryClient.invalidateQueries({ queryKey: ["/api/admin/prize-rates"] });
+      
+      // Sau khi cập nhật prize rates, chờ một chút để đảm bảo dữ liệu được lưu
+      // sau đó khởi động lại các queries để cập nhật dữ liệu trên toàn bộ trang
+      setTimeout(() => {
+        // Cập nhật lại các trang có sử dụng prize rates
+        queryClient.refetchQueries({ queryKey: ["/api/admin/prize-rates"] });
+      }, 300);
     },
     onError: (error) => {
       toast({
