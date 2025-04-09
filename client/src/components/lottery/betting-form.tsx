@@ -13,7 +13,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { PRIZE_RATES, DEFAULT_LO_AMOUNT, fetchPrizeRates } from "@/lib/lottery-api";
+import { DEFAULT_LO_AMOUNT, fetchPrizeRates } from "@/lib/lottery-api";
 import { useQuery } from "@tanstack/react-query";
 
 interface BettingFormProps {
@@ -32,7 +32,8 @@ interface BettingFormProps {
   setBetMode?: (mode: string) => void;
 }
 
-// Đã import PRIZE_RATES và DEFAULT_LO_AMOUNT từ lottery-api.ts
+// Importamos apenas DEFAULT_LO_AMOUNT do lottery-api.ts, 
+// enquanto as taxas de prêmios são buscadas diretamente da API
 
 export default function BettingForm({
   betAmount,
